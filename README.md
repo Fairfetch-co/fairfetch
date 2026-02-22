@@ -59,7 +59,7 @@ Fairfetch connects two parties through a shared open standard:
 ## Quick Start
 
 ```bash
-git clone https://github.com/fairfetch/fairfetch.git
+git clone https://github.com/Fairfetch-co/fairfetch.git
 cd fairfetch
 python -m venv .venv
 source .venv/bin/activate  # Windows: .venv\Scripts\activate

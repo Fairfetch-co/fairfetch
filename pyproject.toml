@@ -50,10 +50,10 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/fairfetch/fairfetch"
-Documentation = "https://github.com/fairfetch/fairfetch#readme"
-Repository = "https://github.com/fairfetch/fairfetch"
-Issues = "https://github.com/fairfetch/fairfetch/issues"
+Homepage = "https://github.com/Fairfetch-co/fairfetch"
+Documentation = "https://github.com/Fairfetch-co/fairfetch#readme"
+Repository = "https://github.com/Fairfetch-co/fairfetch"
+Issues = "https://github.com/Fairfetch-co/fairfetch/issues"
 
 [project.scripts]
 fairfetch = "api.main:run"
