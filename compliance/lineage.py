@@ -64,7 +64,7 @@ class DataLineageTracker:
             )
         )
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, object]:
         return {
             "source_url": self._source_url,
             "pipeline": [r.model_dump() for r in self._records],

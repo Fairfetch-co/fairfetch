@@ -34,7 +34,7 @@ class PaymentRequirement(BaseModel):
     description: str = Field(default="Content access fee")
     extra: dict[str, str] = Field(default_factory=dict)
 
-    def to_402_body(self) -> dict:
+    def to_402_body(self) -> dict[str, object]:
         return {
             "accepts": {
                 "price": self.price,

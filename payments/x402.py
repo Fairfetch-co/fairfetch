@@ -83,7 +83,7 @@ class X402Middleware(BaseHTTPMiddleware):
         if self._license_provider:
             body_bytes = b""
             if hasattr(response, "body"):
-                body_bytes = response.body
+                body_bytes = bytes(response.body)
             content_hash = hashlib.sha256(body_bytes).hexdigest() if body_bytes else ""
 
             url_param = request.query_params.get("url", request.url.path)

@@ -132,16 +132,16 @@ async def fetch_content(
     grant_header = await _issue_grant_for_response(request, result.markdown, url, license_type)
 
     if content_format == ContentFormat.MARKDOWN:
-        response = PlainTextResponse(result.markdown, media_type="text/markdown")
+        md_response = PlainTextResponse(result.markdown, media_type="text/markdown")
         _attach_compliance_headers(
-            response,
+            md_response,
             signer=signer,
             content=result.markdown,
             license_type=license_type,
             license_id=grant_header,
         )
-        _attach_preferred_access(response, request)
-        return response
+        _attach_preferred_access(md_response, request)
+        return md_response
 
     summary_result = await summarizer.summarize(result.markdown)
     tracker.record(
@@ -166,19 +166,19 @@ async def fetch_content(
         if grant_header:
             body["fairfetch:usageGrant"] = grant_header
         media = content_format.value
-        response = JSONResponse(content=body, media_type=media)
+        json_response = JSONResponse(content=body, media_type=media)
     else:
-        response = JSONResponse(content=packet.to_jsonld())
+        json_response = JSONResponse(content=packet.to_jsonld())
 
     _attach_compliance_headers(
-        response,
+        json_response,
         signer=signer,
         content=result.markdown,
         license_type=license_type,
         license_id=grant_header,
     )
-    _attach_preferred_access(response, request)
-    return response
+    _attach_preferred_access(json_response, request)
+    return json_response
 
 
 @router.get("/content/summary")
@@ -229,7 +229,7 @@ async def get_markdown(
 
 
 @router.get("/health")
-async def health(request: Request) -> dict:
+async def health(request: Request) -> dict[str, object]:
     scraper_count = getattr(request.app.state, "scraper_intercept_count", 0)
     return {
         "status": "ok",
