@@ -1,0 +1,81 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["core", "api", "mcp_server", "payments", "compliance", "interfaces", "plugins"]
+
+[project]
+name = "fairfetch"
+version = "0.2.0"
+description = "Green AI infrastructure for publishers — serve machine-ready content to AI agents with x402 payments, cryptographic Usage Grants, and EU AI Act compliance."
+readme = "README.md"
+license = { text = "Apache-2.0" }
+requires-python = ">=3.11"
+authors = [{ name = "Fairfetch Contributors" }]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Framework :: FastAPI",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Internet :: WWW/HTTP",
+]
+
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.34.0",
+    "httpx>=0.28.0",
+    "pydantic>=2.10.0",
+    "trafilatura>=2.0.0",
+    "markdownify>=0.14.0",
+    "litellm>=1.55.0",
+    "mcp[cli]>=1.3.0",
+    "cryptography>=44.0.0",
+    "pynacl>=1.5.0",
+    "python-multipart>=0.0.18",
+    "orjson>=3.10.0",
+    "cachetools>=5.5.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3.0",
+    "pytest-asyncio>=0.25.0",
+    "pytest-cov>=6.0.0",
+    "httpx>=0.28.0",
+    "ruff>=0.9.0",
+    "mypy>=1.14.0",
+    "pre-commit>=4.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/fairfetch/fairfetch"
+Documentation = "https://github.com/fairfetch/fairfetch#readme"
+Repository = "https://github.com/fairfetch/fairfetch"
+Issues = "https://github.com/fairfetch/fairfetch/issues"
+
+[project.scripts]
+fairfetch = "api.main:run"
+fairfetch-mcp = "mcp_server.server:main"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP", "B", "A", "SIM", "TCH"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+markers = [
+    "integration: marks tests as integration tests",
+    "slow: marks tests as slow",
+]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_return_any = true
+warn_unused_configs = true

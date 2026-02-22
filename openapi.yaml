@@ -1,0 +1,391 @@
+openapi: 3.1.0
+info:
+  title: Fairfetch — AI-Aware Content Layer
+  description: |
+    Serve machine-ready content to AI agents with x402 micro-payments,
+    MCP protocol support, and EU AI Act 2026 compliance.
+
+    ## Payment Flow (x402)
+    1. Request content without `X-PAYMENT` header → receive `402 Payment Required`
+    2. Response body contains `accepts` object with price, asset, network, and wallet
+    3. Obtain payment proof via the facilitator
+    4. Retry with `X-PAYMENT: <proof>` header → receive content
+
+    ## Content Negotiation
+    Set the `Accept` header to control response format:
+    - `application/ai-context+json` — Full JSON-LD knowledge packet with lineage
+    - `application/ld+json` — JSON-LD article representation
+    - `text/markdown` — Clean markdown extraction
+    - `application/json` — Standard JSON response
+  version: 0.1.0
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0
+  contact:
+    name: Fairfetch
+    url: https://github.com/fairfetch/fairfetch
+
+servers:
+  - url: http://localhost:8402
+    description: Local development server
+  - url: https://api.fairfetch.dev
+    description: Production API
+
+paths:
+  /content/fetch:
+    get:
+      operationId: fetchContent
+      summary: Fetch, extract, and serve content in the negotiated format
+      description: |
+        Fetches the target URL, strips ads/navigation, extracts article content,
+        generates a summary, and returns a signed knowledge packet.
+        Requires x402 payment via `X-PAYMENT` header.
+      parameters:
+        - name: url
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uri
+          description: URL of the page to fetch and convert
+        - $ref: '#/components/parameters/AcceptHeader'
+        - $ref: '#/components/parameters/PaymentHeader'
+      responses:
+        '200':
+          description: Content successfully retrieved and processed
+          headers:
+            X-Data-Origin-Verified:
+              $ref: '#/components/headers/X-Data-Origin-Verified'
+            X-AI-License-Type:
+              $ref: '#/components/headers/X-AI-License-Type'
+            X-Origin-Signature:
+              $ref: '#/components/headers/X-Origin-Signature'
+            X-Content-Hash:
+              $ref: '#/components/headers/X-Content-Hash'
+            X-PAYMENT-RECEIPT:
+              $ref: '#/components/headers/X-PAYMENT-RECEIPT'
+          content:
+            application/ai-context+json:
+              schema:
+                $ref: '#/components/schemas/KnowledgePacket'
+            application/ld+json:
+              schema:
+                $ref: '#/components/schemas/KnowledgePacket'
+            text/markdown:
+              schema:
+                type: string
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KnowledgePacket'
+        '402':
+          description: Payment required — include X-PAYMENT header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentRequired'
+        '422':
+          description: Invalid URL parameter
+
+  /content/summary:
+    get:
+      operationId: getSummary
+      summary: Get an AI-generated summary of a URL
+      parameters:
+        - name: url
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uri
+        - $ref: '#/components/parameters/PaymentHeader'
+      responses:
+        '200':
+          description: Summary retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SummaryResponse'
+        '402':
+          description: Payment required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentRequired'
+
+  /content/markdown:
+    get:
+      operationId: getMarkdown
+      summary: Get clean Markdown extraction of a URL
+      parameters:
+        - name: url
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uri
+        - $ref: '#/components/parameters/PaymentHeader'
+      responses:
+        '200':
+          description: Markdown content
+          headers:
+            X-Data-Origin-Verified:
+              $ref: '#/components/headers/X-Data-Origin-Verified'
+            X-AI-License-Type:
+              $ref: '#/components/headers/X-AI-License-Type'
+          content:
+            text/markdown:
+              schema:
+                type: string
+        '402':
+          description: Payment required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentRequired'
+
+  /health:
+    get:
+      operationId: healthCheck
+      summary: Service health check (no payment required)
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  service:
+                    type: string
+                    example: fairfetch
+                  version:
+                    type: string
+                    example: 0.1.0
+
+  /compliance/optout:
+    get:
+      operationId: getOptOutStatus
+      summary: Check if a domain has opted out of AI training
+      parameters:
+        - name: domain
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Domain to check opt-out status
+      responses:
+        '200':
+          description: Opt-out status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OptOutStatus'
+
+components:
+  parameters:
+    AcceptHeader:
+      name: Accept
+      in: header
+      required: false
+      schema:
+        type: string
+        enum:
+          - application/ai-context+json
+          - application/ld+json
+          - text/markdown
+          - application/json
+        default: application/json
+      description: Desired response format
+
+    PaymentHeader:
+      name: X-PAYMENT
+      in: header
+      required: false
+      schema:
+        type: string
+      description: |
+        Payment proof obtained from the facilitator.
+        For testing, use any string starting with `test_` (e.g. `test_paid_fairfetch`).
+
+  headers:
+    X-Data-Origin-Verified:
+      description: |
+        EU AI Act compliance header. Attests that the content originates
+        from a verified publisher with cryptographic proof.
+      schema:
+        type: string
+        enum: ['true', 'false']
+
+    X-AI-License-Type:
+      description: |
+        Declares the terms under which AI systems may use this content.
+        Values: publisher-terms, commercial, research-only, opt-out.
+      schema:
+        type: string
+        enum:
+          - publisher-terms
+          - commercial
+          - research-only
+          - opt-out
+
+    X-Origin-Signature:
+      description: Ed25519 signature of the content body (base64)
+      schema:
+        type: string
+
+    X-Content-Hash:
+      description: SHA-256 hash of the content body
+      schema:
+        type: string
+        pattern: '^sha256:[a-f0-9]{64}$'
+
+    X-PAYMENT-RECEIPT:
+      description: Transaction hash confirming payment settlement
+      schema:
+        type: string
+
+  schemas:
+    KnowledgePacket:
+      type: object
+      properties:
+        '@context':
+          type: string
+          example: https://schema.org
+        '@type':
+          type: string
+          example: Article
+        headline:
+          type: string
+        author:
+          type: object
+          properties:
+            '@type':
+              type: string
+              example: Person
+            name:
+              type: string
+        url:
+          type: string
+          format: uri
+        datePublished:
+          type: string
+          format: date-time
+        description:
+          type: string
+          description: AI-generated summary
+        articleBody:
+          type: string
+          description: Full markdown content
+        'fairfetch:originSignature':
+          type: object
+          properties:
+            algorithm:
+              type: string
+              example: Ed25519
+            signature:
+              type: string
+            publicKey:
+              type: string
+        'fairfetch:dataLineage':
+          type: object
+          properties:
+            source_url:
+              type: string
+            extraction_method:
+              type: string
+            extraction_timestamp:
+              type: string
+            content_hash:
+              type: string
+            license_type:
+              type: string
+        'fairfetch:lineage':
+          type: object
+          properties:
+            source_url:
+              type: string
+            pipeline:
+              type: array
+              items:
+                type: object
+                properties:
+                  step:
+                    type: string
+                  timestamp:
+                    type: string
+                  tool:
+                    type: string
+            record_count:
+              type: integer
+
+    PaymentRequired:
+      type: object
+      properties:
+        accepts:
+          type: object
+          properties:
+            price:
+              type: string
+              description: Amount in smallest unit
+              example: '1000'
+            asset:
+              type: string
+              example: USDC
+            network:
+              type: string
+              example: base
+            payTo:
+              type: string
+              description: Publisher EVM wallet address
+            facilitator:
+              type: string
+              format: uri
+            description:
+              type: string
+        error:
+          type: string
+          example: Payment Required
+        message:
+          type: string
+
+    SummaryResponse:
+      type: object
+      properties:
+        url:
+          type: string
+        title:
+          type: string
+        author:
+          type: string
+        summary:
+          type: string
+        model:
+          type: string
+
+    OptOutStatus:
+      type: object
+      properties:
+        domain:
+          type: string
+        opted_out:
+          type: boolean
+        entries:
+          type: array
+          items:
+            type: object
+            properties:
+              domain:
+                type: string
+              url_pattern:
+                type: string
+              opt_out_scope:
+                type: string
+              declared_by:
+                type: string
+              timestamp:
+                type: string
+              reference:
+                type: string

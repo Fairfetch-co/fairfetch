@@ -1,0 +1,103 @@
+"""Fairfetch FastAPI application — Direct Pipeline entry point."""
+
+from __future__ import annotations
+
+import logging
+
+import uvicorn
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from api.dependencies import (
+    build_converter,
+    build_facilitator,
+    build_license_provider,
+    build_packet_builder,
+    build_payment_requirement,
+    build_signer,
+    build_summarizer,
+    get_config,
+)
+from api.routes import router
+from payments.x402 import X402Middleware
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
+logger = logging.getLogger("fairfetch")
+
+
+def create_app() -> FastAPI:
+    config = get_config()
+    signer = build_signer(config)
+
+    application = FastAPI(
+        title="Fairfetch — AI-Aware Content Layer",
+        description=(
+            "Green AI infrastructure for publishers. Serve machine-ready content "
+            "to AI agents with x402 payments, cryptographic Usage Grants for legal "
+            "indemnity, and EU AI Act 2026 compliance."
+        ),
+        version="0.2.0",
+        docs_url="/docs",
+        redoc_url="/redoc",
+    )
+
+    application.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_methods=["*"],
+        allow_headers=[
+            "*", "X-PAYMENT", "X-PAYMENT-RECEIPT",
+            "X-FairFetch-License-ID", "X-FairFetch-Origin-Signature",
+        ],
+        expose_headers=[
+            "X-PAYMENT-RECEIPT", "X-Data-Origin-Verified", "X-AI-License-Type",
+            "X-FairFetch-License-ID", "X-FairFetch-Origin-Signature",
+            "X-FairFetch-Preferred-Access", "X-FairFetch-LLMS-Txt",
+            "X-FairFetch-MCP-Endpoint", "Link",
+        ],
+    )
+
+    facilitator = build_facilitator(config)
+    requirement = build_payment_requirement(config)
+    license_provider = build_license_provider(config, signer) if config.enable_usage_grants else None
+
+    application.add_middleware(
+        X402Middleware,
+        facilitator=facilitator,
+        requirement=requirement,
+        license_provider=license_provider,
+        paid_path_prefixes=["/content/"],
+        exempt_paths=["/health", "/openapi.json", "/docs", "/redoc", "/compliance/"],
+    )
+
+    application.state.config = config
+    application.state.signer = signer
+    application.state.converter = build_converter()
+    application.state.summarizer = build_summarizer(config)
+    application.state.packet_builder = build_packet_builder(signer)
+    application.state.license_provider = license_provider
+    application.state.scraper_intercept_count = 0
+
+    application.include_router(router)
+
+    logger.info(
+        "Fairfetch v0.2.0 — test_mode=%s, grants=%s, preferred_access=%s, price=%s USDC",
+        config.test_mode,
+        config.enable_usage_grants,
+        config.enable_preferred_access,
+        config.content_price,
+    )
+
+    return application
+
+
+app = create_app()
+
+
+def run() -> None:
+    config = get_config()
+    uvicorn.run("api.main:app", host=config.host, port=config.port, reload=True)
+
+
+if __name__ == "__main__":
+    run()
