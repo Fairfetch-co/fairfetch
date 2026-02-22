@@ -1,62 +1,102 @@
+<div align="center">
+
 # Fairfetch
 
-**The open standard for AI-to-Publisher content access.**
+**The web protocol for the agentic economy.**
 
-Fairfetch is an open-source infrastructure layer that lets publishers serve
-machine-ready content directly to AI agents — replacing illegal scraping with
-a paid, signed, legally verifiable pipeline.
+[![CI](https://github.com/Fairfetch-co/fairfetch/actions/workflows/ci.yml/badge.svg)](https://github.com/Fairfetch-co/fairfetch/actions/workflows/ci.yml)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-3776AB?logo=python&logoColor=white)](https://python.org)
+[![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
+[![Code style: Ruff](https://img.shields.io/badge/code%20style-ruff-30173d.svg)](https://docs.astral.sh/ruff/)
+[![MCP](https://img.shields.io/badge/protocol-MCP-7c3aed.svg)](https://modelcontextprotocol.io)
+[![x402](https://img.shields.io/badge/payments-x402-22c55e.svg)](https://www.x402.org/)
+[![EU AI Act](https://img.shields.io/badge/compliance-EU%20AI%20Act%202026-0055a4.svg)](#-compliance-headers)
 
----
+<br />
 
-## Why Fairfetch Exists
+An open-source infrastructure layer that lets publishers serve machine-ready
+content directly to AI agents — replacing illegal scraping with a paid, signed,
+legally verifiable pipeline.
 
-Every day, AI companies scrape the same web pages thousands of times, burning
-compute, violating copyright, and creating legal liability for everyone
-involved. Fairfetch solves all three problems at once.
+[Quick Start](#-quick-start) · [Publisher Guide](docs/PUBLISHER_GUIDE.md) · [AI Agent Guide](docs/AI_AGENT_GUIDE.md) · [Development](DEVELOPMENT.md)
 
-### 1. Green AI Infrastructure
+</div>
 
-> Pre-process once at the source. Eliminate the redundant 1,000x compute cost of web crawling.
+<br />
 
-Publishers convert HTML to clean Markdown and generate summaries **once**.
-AI agents fetch the result instead of each independently parsing raw HTML,
-stripping ads, and running extraction pipelines. This is a direct reduction
-in global AI inference cost and energy consumption.
+## The Problem
 
-### 2. Legal Indemnity (Safe Harbor)
+Every day, AI companies scrape the same web pages **thousands of times**, burning compute, violating copyright, and creating legal liability for everyone involved.
 
-> Cryptographic "Usage Grants" give AI companies proof of legal access.
+Fairfetch solves all three problems at once:
 
-Every successful content request produces a **Usage Grant** — an Ed25519-signed
-token that records what was accessed, when, by whom, and under what license.
-AI companies store these grants as courtroom-grade evidence of authorized usage,
-removing the fear of copyright litigation. Publishers control the terms.
+<table>
+<tr>
+<td width="33%" valign="top">
 
-### 3. Direct-to-Source Economy (Anti-Scraper)
+### 🌱 Green AI
 
-> A machine-readable layer that bypasses middleman crawlers, connecting AI agents directly to publishers.
+**Pre-process once at the source.**
 
-Fairfetch actively steers known crawlers (GPTBot, CCBot, etc.) away from raw
-HTML scraping and toward the official API. Edge workers inject `Link` headers
-pointing to `/llms.txt` and the MCP endpoint, converting "illegal" crawls
-into "legal" API hits — and publishers see the conversion rate in real time.
+Publishers convert HTML to clean Markdown and generate summaries once. AI agents fetch the result — eliminating the redundant 1,000x compute cost of web crawling.
 
----
+</td>
+<td width="33%" valign="top">
+
+### 🛡️ Legal Safe Harbor
+
+**Cryptographic proof of legal access.**
+
+Every request produces an Ed25519-signed **Usage Grant** — courtroom-grade evidence of authorized usage. Publishers set the terms. AI companies sleep at night.
+
+</td>
+<td width="33%" valign="top">
+
+### 🔗 Direct Pipeline
+
+**Cut out the middleman crawlers.**
+
+Edge workers steer known bots (GPTBot, CCBot) from raw HTML toward the official API, converting "illegal" crawls into paid, legal API hits in real time.
+
+</td>
+</tr>
+</table>
+
+<br />
 
 ## Two Parties, One Protocol
 
-Fairfetch connects two parties through a shared open standard:
+<table>
+<tr>
+<th></th>
+<th>📰 Publisher (Content Provider)</th>
+<th>🤖 AI Agent (Consumer)</th>
+</tr>
+<tr>
+<td><strong>Goal</strong></td>
+<td>Monetize content, stop illegal scraping</td>
+<td>Get clean content with legal cover</td>
+</tr>
+<tr>
+<td><strong>Deploys</strong></td>
+<td>Edge worker + Fairfetch API</td>
+<td>MCP client or REST calls</td>
+</tr>
+<tr>
+<td><strong>Gets</strong></td>
+<td>Revenue, analytics, legal control</td>
+<td>Markdown, signatures, Usage Grants</td>
+</tr>
+<tr>
+<td><strong>Guide</strong></td>
+<td><a href="docs/PUBLISHER_GUIDE.md"><strong>Publisher Onboarding →</strong></a></td>
+<td><a href="docs/AI_AGENT_GUIDE.md"><strong>AI Agent Integration →</strong></a></td>
+</tr>
+</table>
 
-| | **Publisher** (Content Provider) | **AI Agent** (Consumer) |
-|---|---|---|
-| **Goal** | Monetize content, stop illegal scraping | Get clean content with legal cover |
-| **Deploys** | Edge worker + Fairfetch API | MCP client or REST calls |
-| **Gets** | Revenue, analytics, legal control | Markdown, signatures, Usage Grants |
-| **Guide** | [Publisher Onboarding →](docs/PUBLISHER_GUIDE.md) | [AI Agent Integration →](docs/AI_AGENT_GUIDE.md) |
+<br />
 
----
-
-## Quick Start
+## 🚀 Quick Start
 
 ```bash
 git clone https://github.com/Fairfetch-co/fairfetch.git
@@ -69,24 +109,24 @@ make setup-dev
 make dev
 ```
 
-### For Publishers: Verify Your Setup
+<details>
+<summary><strong>For Publishers — Verify your setup</strong></summary>
 
 ```bash
-# Health check — confirm the server is running
+# Health check
 curl http://localhost:8402/health
 
-# Simulate an AI agent paying for your content
+# Simulate an AI agent paying for content
 curl -v -H "X-PAYMENT: test_paid_fairfetch" \
      -H "Accept: application/ai-context+json" \
      "http://localhost:8402/content/fetch?url=https://example.com"
 
-# Check the response headers for the three pillars:
-#   X-FairFetch-Origin-Signature  (Legal — your content is signed)
-#   X-FairFetch-License-ID        (Indemnity — Usage Grant issued)
-#   X-PAYMENT-RECEIPT              (Payment — settlement confirmed)
+# Response headers include the three pillars:
+#   X-FairFetch-Origin-Signature  → Legal (content is signed)
+#   X-FairFetch-License-ID        → Indemnity (Usage Grant issued)
+#   X-PAYMENT-RECEIPT              → Payment (settlement confirmed)
 
-# Simulate a scraper and see the steering headers
-# (X-PAYMENT is required to pass the x402 middleware before steering kicks in)
+# Simulate a scraper — see the steering headers
 curl -v -H "X-PAYMENT: test_paid_fairfetch" \
      -H "User-Agent: GPTBot/1.0" \
      -H "Accept: text/html" \
@@ -94,31 +134,27 @@ curl -v -H "X-PAYMENT: test_paid_fairfetch" \
      | grep "X-FairFetch"
 ```
 
-### For AI Agents: Get Content in 30 Seconds
+</details>
+
+<details>
+<summary><strong>For AI Agents — Get content in 30 seconds</strong></summary>
 
 **Option 1 — MCP (zero code):**
 
 ```bash
-# Test with MCP Inspector (opens in browser)
 npx @modelcontextprotocol/inspector python -m mcp_server.server
 # → Connect → Tools → call fetch_article_markdown with url: "https://example.com"
 ```
 
-**Option 2 — REST API (curl):**
+**Option 2 — REST API:**
 
 ```bash
-# Get clean Markdown
 curl -H "X-PAYMENT: test_paid_fairfetch" \
      -H "Accept: text/markdown" \
      "http://localhost:8402/content/fetch?url=https://example.com"
-
-# Get full knowledge packet with Usage Grant
-curl -H "X-PAYMENT: test_paid_fairfetch" \
-     -H "Accept: application/ai-context+json" \
-     "http://localhost:8402/content/fetch?url=https://example.com"
 ```
 
-**Option 3 — Python client (3 lines):**
+**Option 3 — Python client:**
 
 ```python
 import httpx, asyncio
@@ -128,22 +164,26 @@ async def main():
         r = await c.get(
             "http://localhost:8402/content/fetch",
             params={"url": "https://example.com"},
-            headers={"X-PAYMENT": "test_paid_fairfetch", "Accept": "application/ai-context+json"},
+            headers={
+                "X-PAYMENT": "test_paid_fairfetch",
+                "Accept": "application/ai-context+json",
+            },
         )
-        print(r.json())           # content + summary + lineage
-        print(r.headers["X-FairFetch-License-ID"])  # your Usage Grant
+        print(r.json())
+        print(r.headers["X-FairFetch-License-ID"])
 
 asyncio.run(main())
 ```
 
-Every response includes the **Green + Legal + Indemnity** triple:
-1. Clean Markdown content (Green)
-2. `X-FairFetch-Origin-Signature` header (Legal)
-3. `X-FairFetch-License-ID` header (Indemnity)
+</details>
 
----
+> [!TIP]
+> Every response includes the **Green + Legal + Indemnity** triple:
+> clean Markdown content, an `X-FairFetch-Origin-Signature` header, and an `X-FairFetch-License-ID` header.
 
-## Architecture
+<br />
+
+## 🏗️ Architecture
 
 ```
                           AI Agent / LLM
@@ -182,24 +222,9 @@ Every response includes the **Green + Legal + Indemnity** triple:
                    +-------------------------+
 ```
 
-## Open Core Model
+<br />
 
-| Layer | Open Source | Cloud (Commercial) |
-|-------|-----------|-------------------|
-| `interfaces/` | Abstract standard | Same |
-| `core/` | HTML-to-MD, signing | Same |
-| `api/`, `mcp_server/` | REST + MCP protocol | Same |
-| `payments/` | Mock facilitator | Real EIP-3009 settlement |
-| `compliance/` | Headers, lineage | Same |
-| `plugins/` | Placeholder stubs | Managed Clearinghouse |
-
-The open-source repo is fully functional for local development and testing.
-The commercial cloud layer adds real on-chain payments, publisher-verified
-key management, and persistent Usage Grant audit trails.
-
----
-
-## The x402 Payment Flow
+## 💳 The x402 Payment Flow
 
 ```
 Agent                        Fairfetch                   Facilitator
@@ -226,12 +251,13 @@ Agent                        Fairfetch                   Facilitator
   |<-----------------------------|                            |
 ```
 
-For local testing, any `X-PAYMENT` value starting with `test_` is accepted.
-The magic token `test_paid_fairfetch` always works.
+> [!NOTE]
+> For local testing, any `X-PAYMENT` value starting with `test_` is accepted.
+> The magic token `test_paid_fairfetch` always works.
 
----
+<br />
 
-## Usage Grants (Legal Indemnity)
+## 🔐 Usage Grants (Legal Indemnity)
 
 A Usage Grant is an Ed25519-signed token proving legal content access:
 
@@ -243,11 +269,16 @@ A Usage Grant is an Ed25519-signed token proving legal content access:
   "license_type": "publisher-terms",
   "granted_to": "0xPayerWallet...",
   "granted_at": "2026-02-22T12:00:00Z",
-  "signature": { "algorithm": "Ed25519", "signature": "...", "publicKey": "..." }
+  "signature": {
+    "algorithm": "Ed25519",
+    "signature": "...",
+    "publicKey": "..."
+  }
 }
 ```
 
-Verify locally with the publisher's public key:
+<details>
+<summary><strong>How to verify a grant locally</strong></summary>
 
 ```bash
 # Get the public key via MCP resource
@@ -255,13 +286,16 @@ Verify locally with the publisher's public key:
 
 # Or extract it from any response's grant signature (the publicKey field)
 
-# The grant's signature covers: grant_id|content_url|content_hash|license_type|granted_to|granted_at
+# The grant's signature covers:
+#   grant_id | content_url | content_hash | license_type | granted_to | granted_at
 # Verify using any Ed25519 library against the public key
 ```
 
----
+</details>
 
-## MCP Server (Direct Pipeline)
+<br />
+
+## 🤖 MCP Server (Direct Pipeline)
 
 Three tools for AI agents:
 
@@ -271,17 +305,20 @@ Three tools for AI agents:
 | `fetch_article_markdown` | Clean Markdown (Green AI) |
 | `get_verified_facts` | Full knowledge packet + lineage + grant |
 
-### Test with MCP Inspector
+<details>
+<summary><strong>Test with MCP Inspector</strong></summary>
 
 ```bash
 make dev-mcp
 # Opens the Inspector UI in your browser. Click Connect → Tools → call any tool.
 ```
 
-### Add to Claude Desktop
+</details>
 
-Edit your Claude Desktop config
-(`~/Library/Application Support/Claude/claude_desktop_config.json` on macOS):
+<details>
+<summary><strong>Add to Claude Desktop</strong></summary>
+
+Edit `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS):
 
 ```json
 {
@@ -296,7 +333,10 @@ Edit your Claude Desktop config
 }
 ```
 
-### Add to Cursor IDE
+</details>
+
+<details>
+<summary><strong>Add to Cursor IDE</strong></summary>
 
 Create `.cursor/mcp.json` in your project root:
 
@@ -313,42 +353,58 @@ Create `.cursor/mcp.json` in your project root:
 }
 ```
 
----
+</details>
 
-## Anti-Scraper Bot Steering
+<br />
 
-When a known crawler (GPTBot, CCBot, etc.) requests raw HTML, edge workers
-inject headers steering it to the legal path:
+## 🚧 Anti-Scraper Bot Steering
 
-```
+When a known crawler (GPTBot, CCBot, etc.) requests raw HTML, edge workers inject headers steering it to the legal path:
+
+```http
 X-FairFetch-Preferred-Access: mcp+json-ld
 X-FairFetch-LLMS-Txt: /.well-known/llms.txt
 X-FairFetch-MCP-Endpoint: /mcp
 Link: </.well-known/llms.txt>; rel="ai-policy", </mcp>; rel="ai-content-api"
 ```
 
-The `/health` endpoint reports `scraper_interceptions` — the count of crawler
-requests that were steered, showing publishers the conversion rate.
+The `/health` endpoint reports `scraper_interceptions` — the count of crawler requests steered, showing publishers the conversion rate.
 
-Edge boilerplates are provided for Cloudflare Workers, AWS CloudFront
-Lambda@Edge, Fastly Compute@Edge, and Akamai EdgeWorkers.
+Edge boilerplates are provided for **Cloudflare Workers**, **AWS CloudFront Lambda@Edge**, **Fastly Compute@Edge**, and **Akamai EdgeWorkers**.
 
----
+<br />
 
-## Compliance Headers
+## 📋 Compliance Headers
 
 | Header | Description |
 |--------|-------------|
 | `X-Data-Origin-Verified` | EU AI Act origin attestation |
-| `X-AI-License-Type` | `publisher-terms`, `commercial`, `research-only`, `opt-out` |
+| `X-AI-License-Type` | `publisher-terms` · `commercial` · `research-only` · `opt-out` |
 | `X-FairFetch-Origin-Signature` | Ed25519 signature of content body |
 | `X-FairFetch-License-ID` | Usage Grant compact identifier |
 | `X-Content-Hash` | `sha256:<hex>` hash of content |
 | `X-Fairfetch-Version` | Protocol version (`0.2`) |
 
----
+<br />
 
-## Project Structure
+## 🧩 Open Core Model
+
+| Layer | Open Source (this repo) | Cloud (Commercial) |
+|-------|------------------------|-------------------|
+| `interfaces/` | Abstract standard | Same |
+| `core/` | HTML-to-MD, signing | Same |
+| `api/` · `mcp_server/` | REST + MCP protocol | Same |
+| `payments/` | Mock facilitator | Real EIP-3009 settlement |
+| `compliance/` | Headers, lineage | Same |
+| `plugins/` | Placeholder stubs | Managed Clearinghouse |
+
+> The open-source repo is **fully functional** for local development and testing.
+> The commercial cloud layer adds real on-chain payments, publisher-verified
+> key management, and persistent Usage Grant audit trails.
+
+<br />
+
+## 📁 Project Structure
 
 ```
 fairfetch/
@@ -360,7 +416,7 @@ fairfetch/
 │   ├── summarizer.py        # BaseSummarizer
 │   └── license_provider.py  # BaseLicenseProvider + UsageGrant
 ├── core/                    # Green AI layer
-│   ├── converter.py         # HTML -> Markdown (trafilatura)
+│   ├── converter.py         # HTML → Markdown (trafilatura)
 │   ├── summarizer.py        # LiteLLM implementation
 │   ├── knowledge_packet.py  # JSON-LD builder
 │   └── signatures.py        # Ed25519 signing
@@ -368,13 +424,13 @@ fairfetch/
 │   └── server.py            # FastMCP tools + resources
 ├── api/                     # Direct Pipeline (REST)
 │   ├── main.py              # FastAPI app
-│   ├── routes.py            # Endpoints with triple validation
+│   ├── routes.py            # Endpoints + triple validation
 │   ├── negotiation.py       # Content negotiation + bot steering
 │   └── dependencies.py      # FairFetchConfig + DI
 ├── payments/                # x402 micro-payments
 │   ├── x402.py              # Middleware with grant issuance
 │   ├── mock_facilitator.py  # Local test facilitator
-│   └── mock_license_facilitator.py  # Mock grants
+│   └── mock_license_facilitator.py
 ├── compliance/              # EU AI Act 2026
 │   ├── headers.py           # Standardized headers
 │   ├── lineage.py           # Data lineage tracking
@@ -388,16 +444,18 @@ fairfetch/
 │   └── akamai/              # EdgeWorkers (JS)
 ├── scripts/                 # Dev scripts
 │   └── dev_server.py        # Local launcher (make dev)
-├── tests/                   # Pytest suite (106 tests, 98% coverage)
+├── tests/                   # 106 tests · 98% coverage
 ├── .github/workflows/       # CI pipeline
 ├── openapi.yaml             # REST API spec
 ├── mcp.json                 # MCP Inspector config
-├── pyproject.toml           # Package config
+├── pyproject.toml            # Package config
 ├── Makefile                 # Dev commands
 └── LICENSE                  # Apache 2.0
 ```
 
-## Environment Variables
+<br />
+
+## ⚙️ Configuration
 
 | Variable | Default | Description |
 |----------|---------|-------------|
@@ -405,18 +463,37 @@ fairfetch/
 | `FAIRFETCH_PUBLISHER_WALLET` | `0x000...` | EVM wallet for payments |
 | `FAIRFETCH_PUBLISHER_DOMAIN` | `localhost` | Publisher domain |
 | `FAIRFETCH_CONTENT_PRICE` | `1000` | Price in smallest USDC unit |
-| `FAIRFETCH_SIGNING_KEY` | (generated) | Ed25519 private key (b64) |
+| `FAIRFETCH_SIGNING_KEY` | *(generated)* | Ed25519 private key (b64) |
 | `FAIRFETCH_LICENSE_TYPE` | `publisher-terms` | Default license |
 | `FAIRFETCH_ENABLE_GRANTS` | `true` | Issue Usage Grants |
 | `FAIRFETCH_PREFERRED_ACCESS` | `true` | Inject bot-steering headers |
 | `LITELLM_MODEL` | `gpt-4o-mini` | LLM for summarization |
 
-## Detailed Guides
+<br />
 
-- **[Publisher Onboarding Guide](docs/PUBLISHER_GUIDE.md)** — Step-by-step CDN deployment for Cloudflare, AWS CloudFront, Fastly, Akamai, and Nginx
-- **[AI Agent Integration Guide](docs/AI_AGENT_GUIDE.md)** — MCP setup for Claude/Cursor, REST client examples in Python and TypeScript, Usage Grant verification, RAG pipeline example
-- **[Development Guide](DEVELOPMENT.md)** — Local dev setup, testing the three pillars, architecture decisions
+## 📖 Detailed Guides
 
-## License
+| Guide | What's Inside |
+|-------|---------------|
+| [**Publisher Onboarding**](docs/PUBLISHER_GUIDE.md) | CDN deployment for Cloudflare, CloudFront, Fastly, Akamai, Nginx |
+| [**AI Agent Integration**](docs/AI_AGENT_GUIDE.md) | MCP for Claude/Cursor, REST clients (Python & TS), Usage Grant verification |
+| [**Development**](DEVELOPMENT.md) | Local dev setup, testing the three pillars, architecture decisions |
+| [**Contributing**](CONTRIBUTING.md) | How to contribute, CLA, code standards |
 
-Apache 2.0 - see [LICENSE](LICENSE).
+<br />
+
+## 📄 License
+
+[Apache 2.0](LICENSE) — use it freely, commercially or otherwise.
+
+<br />
+
+---
+
+<div align="center">
+
+**[Website](https://fairfetch.co)** · **[Docs](docs/)** · **[Issues](https://github.com/Fairfetch-co/fairfetch/issues)** · **[Discussions](https://github.com/Fairfetch-co/fairfetch/discussions)**
+
+<sub>Built with conviction that AI and publishers can thrive together.</sub>
+
+</div>
