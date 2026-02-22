@@ -59,7 +59,9 @@ class FairFetchConfig(BaseModel):
             llms_txt_url=os.getenv("FAIRFETCH_LLMS_TXT_URL", "/.well-known/llms.txt"),
             mcp_endpoint=os.getenv("FAIRFETCH_MCP_ENDPOINT", "/mcp"),
             enable_usage_grants=os.getenv("FAIRFETCH_ENABLE_GRANTS", "true").lower() == "true",
-            enable_preferred_access=os.getenv("FAIRFETCH_PREFERRED_ACCESS", "true").lower() == "true",
+            enable_preferred_access=(
+                os.getenv("FAIRFETCH_PREFERRED_ACCESS", "true").lower() == "true"
+            ),
         )
 
 

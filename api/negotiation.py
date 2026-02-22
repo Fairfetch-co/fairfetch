@@ -8,10 +8,10 @@ official legal path (MCP/JSON-LD) instead of raw HTML crawling.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from enum import Enum
+from enum import StrEnum
 
 
-class ContentFormat(str, Enum):
+class ContentFormat(StrEnum):
     MARKDOWN = "text/markdown"
     JSON_LD = "application/ld+json"
     AI_CONTEXT = "application/ai-context+json"
@@ -36,12 +36,29 @@ _ACCEPT_PRIORITY: list[ContentFormat] = [
 ]
 
 KNOWN_CRAWLER_UAS = [
-    "chatgpt", "claude", "anthropic", "openai", "perplexity",
-    "google-extended", "gptbot", "ccbot", "cohere-ai",
-    "bytespider", "claudebot", "ia_archiver", "amazonbot",
-    "facebookexternalhit", "twitterbot", "applebot",
-    "diffbot", "semrushbot", "ahrefsbot", "mj12bot",
-    "dotbot", "petalbot", "barkrowler",
+    "chatgpt",
+    "claude",
+    "anthropic",
+    "openai",
+    "perplexity",
+    "google-extended",
+    "gptbot",
+    "ccbot",
+    "cohere-ai",
+    "bytespider",
+    "claudebot",
+    "ia_archiver",
+    "amazonbot",
+    "facebookexternalhit",
+    "twitterbot",
+    "applebot",
+    "diffbot",
+    "semrushbot",
+    "ahrefsbot",
+    "mj12bot",
+    "dotbot",
+    "petalbot",
+    "barkrowler",
 ]
 
 

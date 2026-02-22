@@ -9,12 +9,12 @@ Part of the FairFetch Open Standard. Implementations include:
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from enum import Enum
+from enum import StrEnum
 
 from pydantic import BaseModel, Field
 
 
-class PaymentNetwork(str, Enum):
+class PaymentNetwork(StrEnum):
     BASE = "base"
     ETHEREUM = "ethereum"
     POLYGON = "polygon"
@@ -67,11 +67,15 @@ class BaseFacilitator(ABC):
     """Abstract base for payment facilitators (production or mock)."""
 
     @abstractmethod
-    async def verify(self, payment_header: str, requirement: PaymentRequirement) -> FacilitatorResult:
+    async def verify(
+        self, payment_header: str, requirement: PaymentRequirement
+    ) -> FacilitatorResult:
         """Verify a payment proof against the requirement. Does not settle."""
         ...
 
     @abstractmethod
-    async def settle(self, payment_header: str, requirement: PaymentRequirement) -> FacilitatorResult:
+    async def settle(
+        self, payment_header: str, requirement: PaymentRequirement
+    ) -> FacilitatorResult:
         """Verify and settle (finalize) the payment on-chain."""
         ...

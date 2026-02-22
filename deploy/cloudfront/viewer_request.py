@@ -18,10 +18,24 @@ AI_ACCEPT_TYPES = [
 ]
 
 KNOWN_CRAWLER_UAS = [
-    "chatgpt", "claude", "anthropic", "openai", "perplexity",
-    "gptbot", "ccbot", "cohere-ai", "google-extended",
-    "bytespider", "claudebot", "amazonbot", "diffbot",
-    "semrushbot", "ahrefsbot", "mj12bot", "dotbot", "petalbot",
+    "chatgpt",
+    "claude",
+    "anthropic",
+    "openai",
+    "perplexity",
+    "gptbot",
+    "ccbot",
+    "cohere-ai",
+    "google-extended",
+    "bytespider",
+    "claudebot",
+    "amazonbot",
+    "diffbot",
+    "semrushbot",
+    "ahrefsbot",
+    "mj12bot",
+    "dotbot",
+    "petalbot",
 ]
 
 PAYMENT_REQUIREMENT = {
@@ -67,11 +81,26 @@ def is_scraper_html(request: dict[str, Any]) -> bool:
 
 def steering_headers() -> dict[str, list[dict[str, str]]]:
     return {
-        "x-fairfetch-preferred-access": [{"key": "X-FairFetch-Preferred-Access", "value": "mcp+json-ld"}],
-        "x-fairfetch-llms-txt": [{"key": "X-FairFetch-LLMS-Txt", "value": LLMS_TXT_URL}],
-        "x-fairfetch-mcp-endpoint": [{"key": "X-FairFetch-MCP-Endpoint", "value": MCP_ENDPOINT}],
-        "link": [{"key": "Link", "value": f'<{LLMS_TXT_URL}>; rel="ai-policy", <{MCP_ENDPOINT}>; rel="ai-content-api"'}],
-        "x-fairfetch-scraper-intercepted": [{"key": "X-FairFetch-Scraper-Intercepted", "value": "true"}],
+        "x-fairfetch-preferred-access": [
+            {"key": "X-FairFetch-Preferred-Access", "value": "mcp+json-ld"},
+        ],
+        "x-fairfetch-llms-txt": [
+            {"key": "X-FairFetch-LLMS-Txt", "value": LLMS_TXT_URL},
+        ],
+        "x-fairfetch-mcp-endpoint": [
+            {"key": "X-FairFetch-MCP-Endpoint", "value": MCP_ENDPOINT},
+        ],
+        "link": [
+            {
+                "key": "Link",
+                "value": (
+                    f'<{LLMS_TXT_URL}>; rel="ai-policy", <{MCP_ENDPOINT}>; rel="ai-content-api"'
+                ),
+            },
+        ],
+        "x-fairfetch-scraper-intercepted": [
+            {"key": "X-FairFetch-Scraper-Intercepted", "value": "true"},
+        ],
     }
 
 

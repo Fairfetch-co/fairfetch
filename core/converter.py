@@ -32,7 +32,9 @@ class ContentConverter:
 
     async def from_url(self, url: str) -> ConversionResult:
         async with httpx.AsyncClient(timeout=self._timeout, follow_redirects=True) as client:
-            resp = await client.get(url, headers={"User-Agent": "Fairfetch/0.1 (+https://fairfetch.dev)"})
+            resp = await client.get(
+                url, headers={"User-Agent": "Fairfetch/0.1 (+https://fairfetch.dev)"}
+            )
             resp.raise_for_status()
             return await self.from_html(resp.text, url=url)
 

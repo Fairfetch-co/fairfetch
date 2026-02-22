@@ -121,7 +121,11 @@ async def fetch_content(
     tracker = DataLineageTracker(source_url=url)
 
     result = await converter.from_url(url)
-    tracker.record("extract", tool="trafilatura", output_hash=DataLineageTracker.hash_content(result.markdown))
+    tracker.record(
+        "extract",
+        tool="trafilatura",
+        output_hash=DataLineageTracker.hash_content(result.markdown),
+    )
 
     content_format = negotiate(accept)
 
@@ -130,8 +134,11 @@ async def fetch_content(
     if content_format == ContentFormat.MARKDOWN:
         response = PlainTextResponse(result.markdown, media_type="text/markdown")
         _attach_compliance_headers(
-            response, signer=signer, content=result.markdown,
-            license_type=license_type, license_id=grant_header,
+            response,
+            signer=signer,
+            content=result.markdown,
+            license_type=license_type,
+            license_id=grant_header,
         )
         _attach_preferred_access(response, request)
         return response
@@ -164,8 +171,11 @@ async def fetch_content(
         response = JSONResponse(content=packet.to_jsonld())
 
     _attach_compliance_headers(
-        response, signer=signer, content=result.markdown,
-        license_type=license_type, license_id=grant_header,
+        response,
+        signer=signer,
+        content=result.markdown,
+        license_type=license_type,
+        license_id=grant_header,
     )
     _attach_preferred_access(response, request)
     return response
@@ -183,13 +193,15 @@ async def get_summary(
     result = await converter.from_url(url)
     summary_result = await summarizer.summarize(result.markdown)
 
-    return JSONResponse(content={
-        "url": url,
-        "title": result.title,
-        "author": result.author,
-        "summary": summary_result.summary,
-        "model": summary_result.model,
-    })
+    return JSONResponse(
+        content={
+            "url": url,
+            "title": result.title,
+            "author": result.author,
+            "summary": summary_result.summary,
+            "model": summary_result.model,
+        }
+    )
 
 
 @router.get("/content/markdown")
@@ -206,8 +218,11 @@ async def get_markdown(
     grant_header = await _issue_grant_for_response(request, result.markdown, url, license_type)
     response = PlainTextResponse(result.markdown, media_type="text/markdown")
     _attach_compliance_headers(
-        response, signer=signer, content=result.markdown,
-        license_type=license_type, license_id=grant_header,
+        response,
+        signer=signer,
+        content=result.markdown,
+        license_type=license_type,
+        license_id=grant_header,
     )
     _attach_preferred_access(response, request)
     return response
@@ -236,8 +251,10 @@ async def get_optout_status(
     opted_out = log.is_opted_out(domain)
     entries = log.get_entries(domain)
 
-    return JSONResponse(content={
-        "domain": domain,
-        "opted_out": opted_out,
-        "entries": [e.model_dump() for e in entries],
-    })
+    return JSONResponse(
+        content={
+            "domain": domain,
+            "opted_out": opted_out,
+            "entries": [e.model_dump() for e in entries],
+        }
+    )

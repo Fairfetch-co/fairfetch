@@ -86,6 +86,7 @@ class MockLicenseFacilitator:
 def _extract_domain(url: str) -> str:
     try:
         from urllib.parse import urlparse
+
         return urlparse(url).netloc
     except Exception:
         return ""

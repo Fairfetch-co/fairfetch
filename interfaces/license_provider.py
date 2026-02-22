@@ -14,11 +14,11 @@ from __future__ import annotations
 import hashlib
 import uuid
 from abc import ABC, abstractmethod
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from pydantic import BaseModel, Field
 
-from core.signatures import Ed25519Signer, Ed25519Verifier, SignatureBundle
+from core.signatures import Ed25519Verifier, SignatureBundle
 
 
 class UsageGrant(BaseModel):
@@ -33,9 +33,7 @@ class UsageGrant(BaseModel):
     content_hash: str = Field(description="SHA-256 of the accessed content")
     license_type: str = Field(default="publisher-terms")
     granted_to: str = Field(default="", description="Payer wallet or agent identifier")
-    granted_at: str = Field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
-    )
+    granted_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
     expires_at: str = Field(default="", description="ISO-8601 expiry, empty = perpetual")
     publisher_domain: str = ""
     signature: SignatureBundle | None = None

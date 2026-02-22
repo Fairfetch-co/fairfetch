@@ -1,4 +1,4 @@
-"""Fairfetch Payments — x402 (HTTP 402) micro-payment middleware, facilitator, and license grants."""
+"""Fairfetch Payments — x402 micro-payment middleware and license grants."""
 
 from interfaces.facilitator import BaseFacilitator, FacilitatorResult, PaymentRequirement
 from interfaces.license_provider import BaseLicenseProvider, UsageGrant

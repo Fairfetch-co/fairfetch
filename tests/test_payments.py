@@ -2,12 +2,9 @@
 
 from __future__ import annotations
 
-import pytest
-
-from core.signatures import Ed25519Signer
 from interfaces.facilitator import PaymentRequirement
 from interfaces.license_provider import UsageGrant
-from payments.mock_facilitator import ALWAYS_VALID_TOKEN, TEST_PAYMENT_PREFIX, MockFacilitator
+from payments.mock_facilitator import ALWAYS_VALID_TOKEN, MockFacilitator
 from payments.mock_license_facilitator import MockLicenseFacilitator, MockLicenseProvider
 
 

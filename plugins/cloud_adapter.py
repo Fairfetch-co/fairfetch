@@ -26,8 +26,6 @@ from __future__ import annotations
 
 import os
 
-import httpx
-
 from interfaces.facilitator import BaseFacilitator, FacilitatorResult, PaymentRequirement
 from interfaces.license_provider import BaseLicenseProvider, UsageGrant
 
@@ -51,14 +49,18 @@ class CloudFacilitator(BaseFacilitator):
         self._publisher_id = publisher_id or os.getenv("FAIRFETCH_PUBLISHER_ID", "")
         self._base_url = base_url
 
-    async def verify(self, payment_header: str, requirement: PaymentRequirement) -> FacilitatorResult:
+    async def verify(
+        self, payment_header: str, requirement: PaymentRequirement
+    ) -> FacilitatorResult:
         raise NotImplementedError(
             "CloudFacilitator requires a FairFetch Cloud subscription. "
             "See https://clearinghouse.fairfetch.dev for details. "
             "Use MockFacilitator for local development."
         )
 
-    async def settle(self, payment_header: str, requirement: PaymentRequirement) -> FacilitatorResult:
+    async def settle(
+        self, payment_header: str, requirement: PaymentRequirement
+    ) -> FacilitatorResult:
         raise NotImplementedError(
             "CloudFacilitator requires a FairFetch Cloud subscription. "
             "See https://clearinghouse.fairfetch.dev for details. "

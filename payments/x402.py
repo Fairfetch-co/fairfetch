@@ -1,4 +1,4 @@
-"""x402 (HTTP 402) FastAPI middleware — gates content behind micro-payments and issues Usage Grants."""
+"""x402 (HTTP 402) middleware — gates content behind micro-payments."""
 
 from __future__ import annotations
 

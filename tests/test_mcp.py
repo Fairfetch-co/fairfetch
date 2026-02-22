@@ -5,10 +5,7 @@ from __future__ import annotations
 import json
 from unittest.mock import AsyncMock, patch
 
-import pytest
-
 from core.converter import ConversionResult
-
 
 MOCK_CONVERSION = ConversionResult(
     markdown="# Test Article\n\nThis is test content about climate change.",

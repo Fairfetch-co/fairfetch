@@ -7,8 +7,7 @@ whether content is available for training or restricted to inference-only.
 
 from __future__ import annotations
 
-import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from pydantic import BaseModel, Field
@@ -24,9 +23,7 @@ class OptOutEntry(BaseModel):
         description="Scope: 'training', 'all', or 'none'",
     )
     declared_by: str = ""
-    timestamp: str = Field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
-    )
+    timestamp: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
     reference: str = Field(
         default="",
         description="Link to the publisher's opt-out declaration (e.g. robots.txt, TDM policy)",
@@ -59,9 +56,12 @@ class CopyrightOptOutLog:
     def is_opted_out(self, domain: str, url: str = "") -> bool:
         """Check if a domain/URL has opted out of AI training."""
         for entry in self._entries:
-            if entry.domain == domain and entry.opt_out_scope in ("training", "all"):
-                if entry.url_pattern == "*" or url.startswith(entry.url_pattern):
-                    return True
+            if (
+                entry.domain == domain
+                and entry.opt_out_scope in ("training", "all")
+                and (entry.url_pattern == "*" or url.startswith(entry.url_pattern))
+            ):
+                return True
         return False
 
     def get_entries(self, domain: str | None = None) -> list[OptOutEntry]:

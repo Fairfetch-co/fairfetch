@@ -8,7 +8,6 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
-import pytest
 from httpx import AsyncClient
 
 from compliance.copyright import CopyrightOptOutLog, OptOutEntry
@@ -18,32 +17,37 @@ from core.signatures import Ed25519Signer
 from interfaces.license_provider import UsageGrant
 from payments.mock_license_facilitator import MockLicenseProvider, _extract_domain
 
-
 # --- api/negotiation.py:62-65 — fallback branches in negotiate() ---
+
 
 class TestNegotiationFallbacks:
     def test_negotiate_text_md(self):
         """Covers negotiation.py:62 — 'text/md' Accept header."""
         from api.negotiation import ContentFormat, negotiate
+
         assert negotiate("text/md") == ContentFormat.MARKDOWN
 
     def test_negotiate_markdown_word(self):
         """Covers negotiation.py:62 — bare 'markdown' in Accept header."""
         from api.negotiation import ContentFormat, negotiate
+
         assert negotiate("markdown") == ContentFormat.MARKDOWN
 
     def test_negotiate_unknown_returns_json(self):
         """Covers negotiation.py:65 — unknown Accept header falls back to JSON."""
         from api.negotiation import ContentFormat, negotiate
+
         assert negotiate("application/xml") == ContentFormat.JSON
 
 
 # --- api/negotiation.py:107 — PreferredAccessHeaders with api_base ---
 
+
 class TestPreferredAccessWithApiBase:
     def test_api_base_header_included(self):
         """Covers negotiation.py:107 — api_base field produces X-FairFetch-API header."""
         from api.negotiation import PreferredAccessHeaders
+
         headers = PreferredAccessHeaders(
             llms_txt_url="/.well-known/llms.txt",
             mcp_endpoint="/mcp",
@@ -55,6 +59,7 @@ class TestPreferredAccessWithApiBase:
 
 # --- compliance/headers.py:41 — lineage_url set ---
 
+
 class TestComplianceLineageUrl:
     def test_lineage_url_header(self):
         """Covers headers.py:41 — X-Content-Lineage header when lineage_url is set."""
@@ -64,6 +69,7 @@ class TestComplianceLineageUrl:
 
 
 # --- compliance/copyright.py:70 — get_entries without domain filter ---
+
 
 class TestCopyrightGetAllEntries:
     def test_get_entries_no_filter(self, tmp_path: Path):
@@ -78,18 +84,18 @@ class TestCopyrightGetAllEntries:
 
 # --- core/summarizer.py:33 — summarize() with hint parameter ---
 
+
 class TestSummarizerHint:
     async def test_summarize_with_hint(self):
         """Covers summarizer.py:33 — hint appended to prompt."""
         mock_response = AsyncMock()
-        mock_response.choices = [
-            AsyncMock(message=AsyncMock(content="Summary with hint context."))
-        ]
+        mock_response.choices = [AsyncMock(message=AsyncMock(content="Summary with hint context."))]
         mock_response.model = "test-model"
         mock_response.usage = AsyncMock(total_tokens=30)
 
         with patch("core.summarizer.litellm.acompletion", return_value=mock_response) as mock_call:
             from core.summarizer import Summarizer
+
             s = Summarizer(model="test")
             result = await s.summarize("Some article text", hint="Focus on climate")
             assert result.summary == "Summary with hint context."
@@ -99,6 +105,7 @@ class TestSummarizerHint:
 
 
 # --- interfaces/license_provider.py:59 — verify() with no signature ---
+
 
 class TestGrantNoSignature:
     def test_unsigned_grant_fails_verification(self):
@@ -115,6 +122,7 @@ class TestGrantNoSignature:
 
 # --- payments/mock_license_facilitator.py:48 — public_key_b64 property ---
 
+
 class TestMockLicenseProviderPublicKey:
     def test_public_key_accessible(self):
         """Covers mock_license_facilitator.py:48 — public_key_b64 property."""
@@ -126,6 +134,7 @@ class TestMockLicenseProviderPublicKey:
 
 
 # --- payments/mock_license_facilitator.py:90-91 — _extract_domain exception ---
+
 
 class TestExtractDomain:
     def test_extract_domain_valid(self):
@@ -139,21 +148,22 @@ class TestExtractDomain:
 
 # --- payments/facilitator.py:7-16 — re-export module ---
 
+
 class TestFacilitatorReExports:
     def test_import_from_payments_facilitator(self):
         """Covers payments/facilitator.py:7-16 — backward compat re-exports."""
         from payments.facilitator import (
             BaseFacilitator,
             Facilitator,
-            FacilitatorResult,
             PaymentNetwork,
-            PaymentRequirement,
         )
+
         assert Facilitator is BaseFacilitator
         assert PaymentNetwork.BASE.value == "base"
 
 
 # --- api/routes.py:233-239 — /compliance/optout endpoint ---
+
 
 class TestComplianceOptoutEndpoint:
     async def test_optout_check(self, client: AsyncClient):
@@ -168,6 +178,7 @@ class TestComplianceOptoutEndpoint:
 
 # --- api/routes.py:56 — enable_preferred_access disabled ---
 
+
 class TestPreferredAccessDisabled:
     async def test_no_steering_when_disabled(self):
         """Covers routes.py:56 — early return when enable_preferred_access is False."""
@@ -177,27 +188,41 @@ class TestPreferredAccessDisabled:
         mock_llm.usage = AsyncMock(total_tokens=10)
 
         mock_conversion = ConversionResult(
-            markdown="# Test", title="Test", author=None, date=None, url="https://example.com",
+            markdown="# Test",
+            title="Test",
+            author=None,
+            date=None,
+            url="https://example.com",
         )
 
         import os
+
         old_val = os.environ.get("FAIRFETCH_PREFERRED_ACCESS")
         os.environ["FAIRFETCH_PREFERRED_ACCESS"] = "false"
 
         try:
             from api.dependencies import get_config
+
             get_config.cache_clear()
 
+            from httpx import ASGITransport
+
             from api.main import create_app
-            from httpx import ASGITransport, AsyncClient as AC
 
             with (
-                patch("core.summarizer.litellm.acompletion", return_value=mock_llm),
-                patch("core.converter.ContentConverter.from_url", new_callable=AsyncMock, return_value=mock_conversion),
+                patch(
+                    "core.summarizer.litellm.acompletion",
+                    return_value=mock_llm,
+                ),
+                patch(
+                    "core.converter.ContentConverter.from_url",
+                    new_callable=AsyncMock,
+                    return_value=mock_conversion,
+                ),
             ):
                 app = create_app()
                 transport = ASGITransport(app=app)
-                async with AC(transport=transport, base_url="http://test") as ac:
+                async with AsyncClient(transport=transport, base_url="http://test") as ac:
                     resp = await ac.get(
                         "/content/fetch",
                         params={"url": "https://example.com"},
@@ -218,6 +243,7 @@ class TestPreferredAccessDisabled:
 
 # --- api/routes.py:85 — _issue_grant_for_response with no license_provider ---
 
+
 class TestNoLicenseProvider:
     async def test_no_grant_when_provider_missing(self):
         """Covers routes.py:84-85 — returns empty string when no license_provider."""
@@ -227,27 +253,41 @@ class TestNoLicenseProvider:
         mock_llm.usage = AsyncMock(total_tokens=10)
 
         mock_conversion = ConversionResult(
-            markdown="# Test", title="Test", author=None, date=None, url="https://example.com",
+            markdown="# Test",
+            title="Test",
+            author=None,
+            date=None,
+            url="https://example.com",
         )
 
         import os
+
         old_val = os.environ.get("FAIRFETCH_ENABLE_GRANTS")
         os.environ["FAIRFETCH_ENABLE_GRANTS"] = "false"
 
         try:
             from api.dependencies import get_config
+
             get_config.cache_clear()
 
+            from httpx import ASGITransport
+
             from api.main import create_app
-            from httpx import ASGITransport, AsyncClient as AC
 
             with (
-                patch("core.summarizer.litellm.acompletion", return_value=mock_llm),
-                patch("core.converter.ContentConverter.from_url", new_callable=AsyncMock, return_value=mock_conversion),
+                patch(
+                    "core.summarizer.litellm.acompletion",
+                    return_value=mock_llm,
+                ),
+                patch(
+                    "core.converter.ContentConverter.from_url",
+                    new_callable=AsyncMock,
+                    return_value=mock_conversion,
+                ),
             ):
                 app = create_app()
                 transport = ASGITransport(app=app)
-                async with AC(transport=transport, base_url="http://test") as ac:
+                async with AsyncClient(transport=transport, base_url="http://test") as ac:
                     resp = await ac.get(
                         "/content/fetch",
                         params={"url": "https://example.com"},
@@ -264,6 +304,7 @@ class TestNoLicenseProvider:
 
 
 # --- core/converter.py:73-74,79 — XML parse error and markdownify fallback ---
+
 
 class TestConverterFallbacks:
     async def test_markdownify_fallback_when_trafilatura_returns_none(self):
@@ -293,11 +334,14 @@ class TestConverterFallbacks:
 
 # --- mcp_server/server.py:183,196 — MCP resource functions ---
 
+
 class TestMCPResources:
     async def test_get_config_resource(self):
         """Covers server.py:183 — fairfetch://config resource."""
         import json
+
         from mcp_server.server import get_config
+
         result = await get_config()
         data = json.loads(result)
         assert data["version"] == "0.2.0"
@@ -308,11 +352,13 @@ class TestMCPResources:
     async def test_get_public_key_resource(self):
         """Covers server.py:196 — fairfetch://public-key resource."""
         from mcp_server.server import get_public_key
+
         key = await get_public_key()
         assert len(key) > 10
 
 
 # --- api/routes.py:98-99 — _issue_grant_for_response exception path ---
+
 
 class TestGrantIssuanceException:
     async def test_grant_exception_returns_empty(self):
@@ -323,21 +369,33 @@ class TestGrantIssuanceException:
         mock_llm.usage = AsyncMock(total_tokens=10)
 
         mock_conversion = ConversionResult(
-            markdown="# Test", title="Test", author=None, date=None, url="https://example.com",
+            markdown="# Test",
+            title="Test",
+            author=None,
+            date=None,
+            url="https://example.com",
         )
 
         with (
-            patch("core.summarizer.litellm.acompletion", return_value=mock_llm),
-            patch("core.converter.ContentConverter.from_url", new_callable=AsyncMock, return_value=mock_conversion),
+            patch(
+                "core.summarizer.litellm.acompletion",
+                return_value=mock_llm,
+            ),
+            patch(
+                "core.converter.ContentConverter.from_url",
+                new_callable=AsyncMock,
+                return_value=mock_conversion,
+            ),
         ):
+            from httpx import ASGITransport
+
             from api.main import create_app
-            from httpx import ASGITransport, AsyncClient as AC
 
             app = create_app()
             app.state.license_provider.issue_grant = AsyncMock(side_effect=RuntimeError("boom"))
 
             transport = ASGITransport(app=app)
-            async with AC(transport=transport, base_url="http://test") as ac:
+            async with AsyncClient(transport=transport, base_url="http://test") as ac:
                 resp = await ac.get(
                     "/content/fetch",
                     params={"url": "https://example.com"},
@@ -348,6 +406,7 @@ class TestGrantIssuanceException:
 
 # --- payments/x402.py:99-100 — middleware grant issuance exception path ---
 
+
 class TestX402GrantException:
     async def test_middleware_grant_exception_logged(self):
         """Covers x402.py:99-100 — exception during middleware grant issuance."""
@@ -357,26 +416,38 @@ class TestX402GrantException:
         mock_llm.usage = AsyncMock(total_tokens=10)
 
         mock_conversion = ConversionResult(
-            markdown="# Test", title="Test", author=None, date=None, url="https://example.com",
+            markdown="# Test",
+            title="Test",
+            author=None,
+            date=None,
+            url="https://example.com",
         )
 
         failing_provider = AsyncMock()
         failing_provider.issue_grant = AsyncMock(side_effect=RuntimeError("grant failure"))
 
         with (
-            patch("core.summarizer.litellm.acompletion", return_value=mock_llm),
-            patch("core.converter.ContentConverter.from_url", new_callable=AsyncMock, return_value=mock_conversion),
+            patch(
+                "core.summarizer.litellm.acompletion",
+                return_value=mock_llm,
+            ),
+            patch(
+                "core.converter.ContentConverter.from_url",
+                new_callable=AsyncMock,
+                return_value=mock_conversion,
+            ),
         ):
+            from httpx import ASGITransport
+
             from api.main import create_app
-            from httpx import ASGITransport, AsyncClient as AC
 
             app = create_app()
             for mw in app.user_middleware:
-                if hasattr(mw, 'kwargs') and 'license_provider' in mw.kwargs:
-                    mw.kwargs['license_provider'] = failing_provider
+                if hasattr(mw, "kwargs") and "license_provider" in mw.kwargs:
+                    mw.kwargs["license_provider"] = failing_provider
 
             transport = ASGITransport(app=app)
-            async with AC(transport=transport, base_url="http://test") as ac:
+            async with AsyncClient(transport=transport, base_url="http://test") as ac:
                 resp = await ac.get(
                     "/content/fetch",
                     params={"url": "https://example.com"},
@@ -387,10 +458,12 @@ class TestX402GrantException:
 
 # --- api/dependencies.py:78,84,90 — non-test-mode branches + unused builder ---
 
+
 class TestDependencyBuilders:
     def test_build_facilitator_non_test_mode(self):
         """Covers dependencies.py:78 — else branch."""
         from api.dependencies import FairFetchConfig, build_facilitator
+
         config = FairFetchConfig(test_mode=False)
         f = build_facilitator(config)
         assert f is not None
@@ -398,6 +471,7 @@ class TestDependencyBuilders:
     def test_build_license_provider_non_test_mode(self):
         """Covers dependencies.py:84 — else branch."""
         from api.dependencies import FairFetchConfig, build_license_provider
+
         config = FairFetchConfig(test_mode=False)
         signer = Ed25519Signer()
         lp = build_license_provider(config, signer)
@@ -406,6 +480,7 @@ class TestDependencyBuilders:
     def test_build_license_facilitator(self):
         """Covers dependencies.py:90 — unused builder function."""
         from api.dependencies import FairFetchConfig, build_license_facilitator
+
         config = FairFetchConfig()
         signer = Ed25519Signer()
         lf = build_license_facilitator(config, signer)

@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
-
 from compliance.copyright import CopyrightOptOutLog, OptOutEntry
 from compliance.headers import ComplianceHeaders
 from compliance.lineage import DataLineageTracker

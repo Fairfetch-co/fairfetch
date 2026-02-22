@@ -11,7 +11,6 @@ from api.main import create_app
 from core.converter import ConversionResult
 from core.signatures import Ed25519Signer
 from interfaces.facilitator import PaymentRequirement
-from interfaces.license_provider import UsageGrant
 from payments.mock_facilitator import MockFacilitator
 from payments.mock_license_facilitator import MockLicenseFacilitator, MockLicenseProvider
 

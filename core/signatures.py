@@ -36,7 +36,9 @@ class Ed25519Signer:
 
     def sign(self, payload: bytes) -> SignatureBundle:
         signed = self._signing_key.sign(payload, encoder=Base64Encoder)
-        sig_b64 = signed.signature.decode() if isinstance(signed.signature, bytes) else signed.signature
+        sig_b64 = (
+            signed.signature.decode() if isinstance(signed.signature, bytes) else signed.signature
+        )
         return SignatureBundle(
             signature=sig_b64,
             public_key=self.public_key_b64,

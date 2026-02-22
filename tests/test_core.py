@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 from core.converter import ContentConverter, ConversionResult
 from core.knowledge_packet import KnowledgePacketBuilder
 from core.signatures import Ed25519Signer, Ed25519Verifier

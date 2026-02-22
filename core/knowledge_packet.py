@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import hashlib
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from pydantic import BaseModel, Field
@@ -16,9 +16,7 @@ class DataLineage(BaseModel):
 
     source_url: str
     extraction_method: str = "trafilatura"
-    extraction_timestamp: str = Field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
-    )
+    extraction_timestamp: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
     content_hash: str = ""
     license_type: str = "publisher-terms"
     opt_out_respected: bool = True
@@ -98,7 +96,7 @@ class KnowledgePacketBuilder:
             headline=title,
             author=author,
             canonical_url=url,
-            date_published=date or datetime.now(timezone.utc).isoformat(),
+            date_published=date or datetime.now(UTC).isoformat(),
             summary=summary,
             markdown_content=markdown,
             origin_signature=signature,

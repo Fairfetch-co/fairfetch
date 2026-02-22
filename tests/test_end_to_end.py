@@ -6,15 +6,10 @@ sides of the protocol to validate the documented workflows.
 
 from __future__ import annotations
 
-import json
-
-import pytest
 from httpx import AsyncClient
 
 from api.negotiation import PreferredAccessHeaders, is_scraper_request
-from core.converter import ConversionResult
 from core.signatures import Ed25519Signer, Ed25519Verifier
-from interfaces.license_provider import UsageGrant
 from payments.mock_license_facilitator import MockLicenseProvider
 
 

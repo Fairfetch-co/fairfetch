@@ -46,20 +46,30 @@ def create_app() -> FastAPI:
         allow_origins=["*"],
         allow_methods=["*"],
         allow_headers=[
-            "*", "X-PAYMENT", "X-PAYMENT-RECEIPT",
-            "X-FairFetch-License-ID", "X-FairFetch-Origin-Signature",
+            "*",
+            "X-PAYMENT",
+            "X-PAYMENT-RECEIPT",
+            "X-FairFetch-License-ID",
+            "X-FairFetch-Origin-Signature",
         ],
         expose_headers=[
-            "X-PAYMENT-RECEIPT", "X-Data-Origin-Verified", "X-AI-License-Type",
-            "X-FairFetch-License-ID", "X-FairFetch-Origin-Signature",
-            "X-FairFetch-Preferred-Access", "X-FairFetch-LLMS-Txt",
-            "X-FairFetch-MCP-Endpoint", "Link",
+            "X-PAYMENT-RECEIPT",
+            "X-Data-Origin-Verified",
+            "X-AI-License-Type",
+            "X-FairFetch-License-ID",
+            "X-FairFetch-Origin-Signature",
+            "X-FairFetch-Preferred-Access",
+            "X-FairFetch-LLMS-Txt",
+            "X-FairFetch-MCP-Endpoint",
+            "Link",
         ],
     )
 
     facilitator = build_facilitator(config)
     requirement = build_payment_requirement(config)
-    license_provider = build_license_provider(config, signer) if config.enable_usage_grants else None
+    license_provider = (
+        build_license_provider(config, signer) if config.enable_usage_grants else None
+    )
 
     application.add_middleware(
         X402Middleware,

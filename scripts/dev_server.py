@@ -8,12 +8,10 @@ Usage:
 
 from __future__ import annotations
 
-import asyncio
 import os
 import signal
 import subprocess
 import sys
-import time
 
 
 def main() -> None:
@@ -39,10 +37,14 @@ def main() -> None:
 
     api_process = subprocess.Popen(
         [
-            sys.executable, "-m", "uvicorn",
+            sys.executable,
+            "-m",
+            "uvicorn",
             "api.main:app",
-            "--host", "0.0.0.0",
-            "--port", "8402",
+            "--host",
+            "0.0.0.0",
+            "--port",
+            "8402",
             "--reload",
         ],
         env={**os.environ},

@@ -68,25 +68,28 @@ async def get_site_summary(url: str) -> str:
         granted_to="mcp-agent",
     )
 
-    return json.dumps({
-        "url": url,
-        "title": result.title,
-        "author": result.author,
-        "date": result.date,
-        "summary": summary_result.summary,
-        "model_used": summary_result.model,
-        "origin_verified": True,
-        "signature": sig.signature,
-        "public_key": sig.public_key,
-        "usage_grant": {
-            "grant_id": grant.grant_id,
-            "license_type": grant.license_type,
-            "granted_at": grant.granted_at,
-            "content_hash": grant.content_hash,
-            "signature": grant.signature.signature if grant.signature else None,
-            "verify_with_public_key": grant.signature.public_key if grant.signature else None,
+    return json.dumps(
+        {
+            "url": url,
+            "title": result.title,
+            "author": result.author,
+            "date": result.date,
+            "summary": summary_result.summary,
+            "model_used": summary_result.model,
+            "origin_verified": True,
+            "signature": sig.signature,
+            "public_key": sig.public_key,
+            "usage_grant": {
+                "grant_id": grant.grant_id,
+                "license_type": grant.license_type,
+                "granted_at": grant.granted_at,
+                "content_hash": grant.content_hash,
+                "signature": grant.signature.signature if grant.signature else None,
+                "verify_with_public_key": grant.signature.public_key if grant.signature else None,
+            },
         },
-    }, indent=2)
+        indent=2,
+    )
 
 
 @mcp.tool()
@@ -103,10 +106,7 @@ async def fetch_article_markdown(url: str) -> str:
     """
     result = await _converter.from_url(url)
 
-    header = (
-        f"# {result.title or 'Untitled'}\n\n"
-        f"**Source:** {url}\n"
-    )
+    header = f"# {result.title or 'Untitled'}\n\n**Source:** {url}\n"
     if result.author:
         header += f"**Author:** {result.author}\n"
     if result.date:
@@ -180,14 +180,21 @@ async def get_verified_facts(url: str) -> str:
 @mcp.resource("fairfetch://config")
 async def get_config() -> str:
     """Current Fairfetch server configuration (non-sensitive)."""
-    return json.dumps({
-        "version": "0.2.0",
-        "test_mode": os.getenv("FAIRFETCH_TEST_MODE", "true"),
-        "model": os.getenv("LITELLM_MODEL", "gpt-4o-mini"),
-        "public_key": _signer.public_key_b64,
-        "supported_formats": ["text/markdown", "application/ai-context+json", "application/ld+json"],
-        "pillars": ["green-ai", "legal-safe-harbor", "direct-pipeline"],
-    }, indent=2)
+    return json.dumps(
+        {
+            "version": "0.2.0",
+            "test_mode": os.getenv("FAIRFETCH_TEST_MODE", "true"),
+            "model": os.getenv("LITELLM_MODEL", "gpt-4o-mini"),
+            "public_key": _signer.public_key_b64,
+            "supported_formats": [
+                "text/markdown",
+                "application/ai-context+json",
+                "application/ld+json",
+            ],
+            "pillars": ["green-ai", "legal-safe-harbor", "direct-pipeline"],
+        },
+        indent=2,
+    )
 
 
 @mcp.resource("fairfetch://public-key")

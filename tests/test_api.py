@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
 from httpx import AsyncClient
 
 
@@ -106,33 +105,40 @@ class TestContentNegotiation:
 class TestNegotiationLogic:
     def test_negotiate_ai_context(self):
         from api.negotiation import ContentFormat, negotiate
+
         assert negotiate("application/ai-context+json") == ContentFormat.AI_CONTEXT
 
     def test_negotiate_markdown(self):
         from api.negotiation import ContentFormat, negotiate
+
         assert negotiate("text/markdown") == ContentFormat.MARKDOWN
 
     def test_negotiate_jsonld(self):
         from api.negotiation import ContentFormat, negotiate
+
         assert negotiate("application/ld+json") == ContentFormat.JSON_LD
 
     def test_negotiate_default(self):
         from api.negotiation import ContentFormat, negotiate
+
         assert negotiate("*/*") == ContentFormat.JSON
 
     def test_negotiate_empty(self):
         from api.negotiation import ContentFormat, negotiate
+
         assert negotiate("") == ContentFormat.JSON
 
 
 class TestAiAgentDetection:
     def test_detect_by_accept(self):
         from api.negotiation import is_ai_agent_request
+
         assert is_ai_agent_request("application/ai-context+json") is True
         assert is_ai_agent_request("text/html") is False
 
     def test_detect_by_user_agent(self):
         from api.negotiation import is_ai_agent_request
+
         assert is_ai_agent_request("text/html", "ChatGPT-User") is True
         assert is_ai_agent_request("text/html", "Mozilla/5.0") is False
         assert is_ai_agent_request("text/html", "CCBot/2.0") is True
@@ -143,12 +149,14 @@ class TestScraperSteering:
 
     def test_scraper_requesting_html_detected(self):
         from api.negotiation import is_scraper_request
+
         assert is_scraper_request("GPTBot/1.0", "text/html") is True
         assert is_scraper_request("GPTBot/1.0", "application/ai-context+json") is False
         assert is_scraper_request("Mozilla/5.0", "text/html") is False
 
     def test_preferred_access_headers(self):
         from api.negotiation import PreferredAccessHeaders
+
         headers = PreferredAccessHeaders(
             llms_txt_url="/.well-known/llms.txt",
             mcp_endpoint="/mcp",

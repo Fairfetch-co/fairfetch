@@ -27,7 +27,9 @@ class MockFacilitator(BaseFacilitator):
     def __init__(self) -> None:
         self._settled: dict[str, FacilitatorResult] = {}
 
-    async def verify(self, payment_header: str, requirement: PaymentRequirement) -> FacilitatorResult:
+    async def verify(
+        self, payment_header: str, requirement: PaymentRequirement
+    ) -> FacilitatorResult:
         if not payment_header.startswith(TEST_PAYMENT_PREFIX):
             return FacilitatorResult(
                 valid=False,
@@ -40,14 +42,14 @@ class MockFacilitator(BaseFacilitator):
             amount=requirement.price,
         )
 
-    async def settle(self, payment_header: str, requirement: PaymentRequirement) -> FacilitatorResult:
+    async def settle(
+        self, payment_header: str, requirement: PaymentRequirement
+    ) -> FacilitatorResult:
         verification = await self.verify(payment_header, requirement)
         if not verification.valid:
             return verification
 
-        fake_tx = hashlib.sha256(
-            f"{payment_header}:{time.time_ns()}".encode()
-        ).hexdigest()
+        fake_tx = hashlib.sha256(f"{payment_header}:{time.time_ns()}".encode()).hexdigest()
 
         result = FacilitatorResult(
             valid=True,
