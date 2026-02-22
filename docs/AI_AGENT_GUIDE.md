@@ -28,7 +28,7 @@ MCP-compatible client.
 
 ```bash
 # 1. Clone and install
-git clone https://github.com/fairfetch/fairfetch.git
+git clone https://github.com/Fairfetch-co/fairfetch.git
 cd fairfetch
 python -m venv .venv
 source .venv/bin/activate
@@ -93,9 +93,13 @@ Or copy the included `mcp.json` from the repo root and update the `cwd` path.
 
 | Tool | Input | Returns |
 |------|-------|---------|
-| `get_site_summary` | `url: string` | JSON: title, author, summary, signature, usage_grant |
+| `get_site_summary` | `url: string`, `usage?: string` | JSON: title, author, summary, signature, usage_grant |
 | `fetch_article_markdown` | `url: string` | Clean Markdown with source header |
-| `get_verified_facts` | `url: string` | Full JSON-LD knowledge packet + lineage + grant |
+| `get_verified_facts` | `url: string`, `usage?: string` | Full JSON-LD knowledge packet + lineage + grant |
+
+The `usage` parameter selects the usage category (`summary`, `rag`, `research`,
+`training`, `commercial`) which determines the pricing tier and compliance level
+recorded in the Usage Grant.
 
 ### Available MCP Resources
 
@@ -128,7 +132,15 @@ Response:
     "asset": "USDC",
     "network": "base",
     "payTo": "0x...",
-    "facilitator": "https://x402.org/facilitator"
+    "usage_category": "summary",
+    "compliance_level": "standard"
+  },
+  "available_tiers": {
+    "summary":    { "price": "1000",  "compliance_level": "standard" },
+    "rag":        { "price": "2000",  "compliance_level": "standard" },
+    "research":   { "price": "3000",  "compliance_level": "elevated" },
+    "training":   { "price": "5000",  "compliance_level": "strict" },
+    "commercial": { "price": "10000", "compliance_level": "strict" }
   },
   "error": "Payment Required",
   "message": "This content requires micro-payment..."
@@ -137,10 +149,11 @@ Response:
 
 ```bash
 # Step 2: Pay and get content (test mode — no real wallet needed)
+# Specify usage=rag for RAG grounding (2x base price)
 curl -s \
   -H "X-PAYMENT: test_paid_fairfetch" \
   -H "Accept: application/ai-context+json" \
-  "http://localhost:8402/content/fetch?url=https://example.com" | python -m json.tool
+  "http://localhost:8402/content/fetch?url=https://example.com&usage=rag" | python -m json.tool
 ```
 
 ### Python Client Example
@@ -152,13 +165,18 @@ import httpx
 FAIRFETCH_URL = "http://localhost:8402"
 PAYMENT_TOKEN = "test_paid_fairfetch"  # test mode token
 
-async def fetch_article(url: str) -> dict:
-    """Fetch an article through FairFetch and get a Usage Grant."""
+async def fetch_article(url: str, usage: str = "summary") -> dict:
+    """Fetch an article through FairFetch and get a Usage Grant.
+
+    Args:
+        url: The article URL to fetch.
+        usage: Usage category — summary, rag, research, training, commercial.
+               Controls pricing tier and compliance level.
+    """
     async with httpx.AsyncClient() as client:
-        # Request the AI-context format
         resp = await client.get(
             f"{FAIRFETCH_URL}/content/fetch",
-            params={"url": url},
+            params={"url": url, "usage": usage},
             headers={
                 "X-PAYMENT": PAYMENT_TOKEN,
                 "Accept": "application/ai-context+json",
@@ -166,16 +184,23 @@ async def fetch_article(url: str) -> dict:
         )
 
         if resp.status_code == 402:
-            pricing = resp.json()["accepts"]
-            raise Exception(f"Payment required: {pricing['price']} {pricing['asset']}")
+            data = resp.json()
+            pricing = data["accepts"]
+            tiers = data.get("available_tiers", {})
+            raise Exception(
+                f"Payment required: {pricing['price']} {pricing['asset']} "
+                f"(usage={pricing.get('usage_category')}). "
+                f"Available tiers: {list(tiers.keys())}"
+            )
 
         resp.raise_for_status()
 
-        # Extract the three pillars from the response
         return {
-            "content": resp.json(),                               # Green: Markdown + summary
-            "origin_sig": resp.headers.get("X-FairFetch-Origin-Signature"),  # Legal: signature
-            "license_id": resp.headers.get("X-FairFetch-License-ID"),        # Indemnity: grant
+            "content": resp.json(),
+            "origin_sig": resp.headers.get("X-FairFetch-Origin-Signature"),
+            "license_id": resp.headers.get("X-FairFetch-License-ID"),
+            "usage_category": resp.headers.get("X-FairFetch-Usage-Category"),
+            "compliance_level": resp.headers.get("X-FairFetch-Compliance-Level"),
             "content_hash": resp.headers.get("X-Content-Hash"),
             "payment_receipt": resp.headers.get("X-PAYMENT-RECEIPT"),
         }

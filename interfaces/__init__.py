@@ -6,15 +6,22 @@ depending on the rest of the repository.
 """
 
 from interfaces.facilitator import BaseFacilitator, FacilitatorResult, PaymentRequirement
-from interfaces.license_provider import BaseLicenseProvider, UsageGrant
+from interfaces.license_provider import (
+    BaseLicenseProvider,
+    ComplianceLevel,
+    UsageCategory,
+    UsageGrant,
+)
 from interfaces.summarizer import BaseSummarizer, SummaryResult
 
 __all__ = [
     "BaseFacilitator",
     "BaseLicenseProvider",
     "BaseSummarizer",
+    "ComplianceLevel",
     "FacilitatorResult",
     "PaymentRequirement",
     "SummaryResult",
+    "UsageCategory",
     "UsageGrant",
 ]

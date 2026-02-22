@@ -19,7 +19,7 @@ from compliance.lineage import DataLineageTracker
 from core.converter import ContentConverter
 from core.knowledge_packet import KnowledgePacketBuilder
 from core.signatures import Ed25519Signer
-from interfaces.license_provider import BaseLicenseProvider
+from interfaces.license_provider import BaseLicenseProvider, UsageCategory
 from interfaces.summarizer import BaseSummarizer
 
 router = APIRouter()
@@ -31,6 +31,7 @@ def _attach_compliance_headers(
     signer: Ed25519Signer,
     content: str,
     license_type: str,
+    usage_category: str = UsageCategory.SUMMARY,
     license_id: str = "",
 ) -> None:
     sig_bundle = signer.sign(content.encode())
@@ -38,6 +39,7 @@ def _attach_compliance_headers(
     headers = ComplianceHeaders(
         origin_verified=True,
         license_type=license_type,
+        usage_category=usage_category,
         signature=sig_bundle,
         content_hash=content_hash,
         license_id=license_id,
@@ -76,6 +78,7 @@ async def _issue_grant_for_response(
     content: str,
     url: str,
     license_type: str,
+    usage_category: str = UsageCategory.SUMMARY,
 ) -> str:
     """Issue a Usage Grant if a license provider is available. Returns the grant header value."""
     license_provider: BaseLicenseProvider | None = getattr(
@@ -92,6 +95,7 @@ async def _issue_grant_for_response(
             content_url=url,
             content_hash=content_hash,
             license_type=license_type,
+            usage_category=usage_category,
             granted_to=payer,
         )
         return grant.to_header_value()
@@ -103,6 +107,10 @@ async def _issue_grant_for_response(
 async def fetch_content(
     request: Request,
     url: Annotated[str, Query(description="URL of the page to fetch and convert")],
+    usage: Annotated[
+        str,
+        Query(description="Usage category: summary, rag, research, training, commercial"),
+    ] = "",
     accept: Annotated[str, Header(alias="accept")] = "application/json",
 ) -> Response:
     """Fetch a URL, extract content, and return in the negotiated format.
@@ -111,12 +119,18 @@ async def fetch_content(
       1. Clean Markdown (Green AI — pre-processed at source)
       2. Signed Origin Packet (Legal — cryptographic provenance)
       3. Usage Grant Token (Indemnity — proof of legal access)
+
+    The `usage` parameter controls the usage category for the grant and
+    determines the compliance level and effective price tier.
     """
     converter: ContentConverter = request.app.state.converter
     summarizer: BaseSummarizer = request.app.state.summarizer
     packet_builder: KnowledgePacketBuilder = request.app.state.packet_builder
     signer: Ed25519Signer = request.app.state.signer
-    license_type: str = request.app.state.config.license_type
+    config = request.app.state.config
+    license_type: str = config.license_type
+
+    usage_cat = _resolve_usage_category(usage, request)
 
     tracker = DataLineageTracker(source_url=url)
 
@@ -129,7 +143,13 @@ async def fetch_content(
 
     content_format = negotiate(accept)
 
-    grant_header = await _issue_grant_for_response(request, result.markdown, url, license_type)
+    grant_header = await _issue_grant_for_response(
+        request,
+        result.markdown,
+        url,
+        license_type,
+        usage_category=usage_cat,
+    )
 
     if content_format == ContentFormat.MARKDOWN:
         md_response = PlainTextResponse(result.markdown, media_type="text/markdown")
@@ -138,6 +158,7 @@ async def fetch_content(
             signer=signer,
             content=result.markdown,
             license_type=license_type,
+            usage_category=usage_cat,
             license_id=grant_header,
         )
         _attach_preferred_access(md_response, request)
@@ -158,6 +179,7 @@ async def fetch_content(
         url=url,
         date=result.date or "",
         license_type=license_type,
+        usage_category=usage_cat,
     )
 
     if content_format in (ContentFormat.AI_CONTEXT, ContentFormat.JSON_LD):
@@ -175,10 +197,30 @@ async def fetch_content(
         signer=signer,
         content=result.markdown,
         license_type=license_type,
+        usage_category=usage_cat,
         license_id=grant_header,
     )
     _attach_preferred_access(json_response, request)
     return json_response
+
+
+def _resolve_usage_category(usage_param: str, request: Request) -> str:
+    """Resolve usage category from query param, header, or config default."""
+    if usage_param:
+        try:
+            return UsageCategory(usage_param.lower()).value
+        except ValueError:
+            pass
+
+    header_val = request.headers.get("x-usage-category", "")
+    if header_val:
+        try:
+            return UsageCategory(header_val.lower()).value
+        except ValueError:
+            pass
+
+    default: str = request.app.state.config.default_usage_category
+    return default
 
 
 @router.get("/content/summary")
@@ -208,20 +250,32 @@ async def get_summary(
 async def get_markdown(
     request: Request,
     url: Annotated[str, Query(description="URL to convert to Markdown")],
+    usage: Annotated[
+        str,
+        Query(description="Usage category: summary, rag, research, training, commercial"),
+    ] = "",
 ) -> PlainTextResponse:
     """Return clean Markdown extraction of a URL (Green AI)."""
     converter: ContentConverter = request.app.state.converter
     signer: Ed25519Signer = request.app.state.signer
     license_type: str = request.app.state.config.license_type
+    usage_cat = _resolve_usage_category(usage, request)
 
     result = await converter.from_url(url)
-    grant_header = await _issue_grant_for_response(request, result.markdown, url, license_type)
+    grant_header = await _issue_grant_for_response(
+        request,
+        result.markdown,
+        url,
+        license_type,
+        usage_category=usage_cat,
+    )
     response = PlainTextResponse(result.markdown, media_type="text/markdown")
     _attach_compliance_headers(
         response,
         signer=signer,
         content=result.markdown,
         license_type=license_type,
+        usage_category=usage_cat,
         license_id=grant_header,
     )
     _attach_preferred_access(response, request)

@@ -3,15 +3,17 @@
 Standardized header names:
   X-FairFetch-Origin-Signature  — Ed25519 sig of the content body
   X-FairFetch-License-ID        — Usage Grant compact identifier
+  X-FairFetch-Usage-Category    — Permitted usage tier (summary, rag, training, etc.)
   X-Data-Origin-Verified        — EU AI Act origin attestation
   X-AI-License-Type             — Content license terms
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from core.signatures import SignatureBundle
+from interfaces.license_provider import ComplianceLevel, UsageCategory, get_compliance_level
 
 
 @dataclass(frozen=True, slots=True)
@@ -20,15 +22,24 @@ class ComplianceHeaders:
 
     origin_verified: bool = True
     license_type: str = "publisher-terms"
+    usage_category: str = field(default=UsageCategory.SUMMARY)
     signature: SignatureBundle | None = None
     lineage_url: str = ""
     content_hash: str = ""
     license_id: str = ""
 
     def to_dict(self) -> dict[str, str]:
+        try:
+            cat = UsageCategory(self.usage_category)
+            compliance = get_compliance_level(cat)
+        except ValueError:
+            compliance = ComplianceLevel.STANDARD
+
         headers: dict[str, str] = {
             "X-Data-Origin-Verified": str(self.origin_verified).lower(),
             "X-AI-License-Type": self.license_type,
+            "X-FairFetch-Usage-Category": self.usage_category,
+            "X-FairFetch-Compliance-Level": compliance.value,
             "X-Fairfetch-Version": "0.2",
         }
 

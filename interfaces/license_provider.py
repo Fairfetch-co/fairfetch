@@ -6,6 +6,9 @@ A Usage Grant is an Ed25519-signed token that serves as a "Legal Receipt":
   - AI companies store these grants as proof of legal access, providing
     indemnity against future copyright litigation (Legal Safe Harbor).
 
+Usage Categories control *how* the content may be used (summary, RAG,
+training, etc.) with escalating compliance and pricing tiers.
+
 Part of the FairFetch Open Standard.
 """
 
@@ -15,23 +18,100 @@ import hashlib
 import uuid
 from abc import ABC, abstractmethod
 from datetime import UTC, datetime
+from enum import StrEnum
 
 from pydantic import BaseModel, Field
 
 from core.signatures import Ed25519Verifier, SignatureBundle
 
 
+class UsageCategory(StrEnum):
+    """Defines the permitted use of accessed content.
+
+    Categories are ordered by escalating compliance requirements and pricing:
+      - SUMMARY:   Display a short summary or snippet (lowest tier)
+      - RAG:       Retrieval-Augmented Generation / search grounding
+      - RESEARCH:  Academic or internal research use
+      - TRAINING:  Model fine-tuning or pre-training (highest tier)
+      - COMMERCIAL: Redistribution or commercial derivative works
+    """
+
+    SUMMARY = "summary"
+    RAG = "rag"
+    RESEARCH = "research"
+    TRAINING = "training"
+    COMMERCIAL = "commercial"
+
+
+class ComplianceLevel(StrEnum):
+    """Compliance tier associated with a usage category."""
+
+    STANDARD = "standard"
+    ELEVATED = "elevated"
+    STRICT = "strict"
+
+
+USAGE_CATEGORY_META: dict[UsageCategory, dict[str, object]] = {
+    UsageCategory.SUMMARY: {
+        "compliance_level": ComplianceLevel.STANDARD,
+        "price_multiplier": 1,
+        "requires_audit_trail": False,
+        "description": "Short summary or snippet display",
+    },
+    UsageCategory.RAG: {
+        "compliance_level": ComplianceLevel.STANDARD,
+        "price_multiplier": 2,
+        "requires_audit_trail": False,
+        "description": "Retrieval-Augmented Generation / search grounding",
+    },
+    UsageCategory.RESEARCH: {
+        "compliance_level": ComplianceLevel.ELEVATED,
+        "price_multiplier": 3,
+        "requires_audit_trail": True,
+        "description": "Academic or internal research use",
+    },
+    UsageCategory.TRAINING: {
+        "compliance_level": ComplianceLevel.STRICT,
+        "price_multiplier": 5,
+        "requires_audit_trail": True,
+        "description": "Model fine-tuning or pre-training",
+    },
+    UsageCategory.COMMERCIAL: {
+        "compliance_level": ComplianceLevel.STRICT,
+        "price_multiplier": 10,
+        "requires_audit_trail": True,
+        "description": "Redistribution or commercial derivative works",
+    },
+}
+
+
+def get_compliance_level(category: UsageCategory) -> ComplianceLevel:
+    meta = USAGE_CATEGORY_META[category]
+    return ComplianceLevel(str(meta["compliance_level"]))
+
+
+def get_price_multiplier(category: UsageCategory) -> int:
+    val = USAGE_CATEGORY_META[category]["price_multiplier"]
+    if isinstance(val, int):
+        return val
+    return int(str(val))
+
+
 class UsageGrant(BaseModel):
     """Cryptographically signed proof of legal content access.
 
     AI companies retain this token as evidence of authorized usage
-    under the publisher's stated license terms.
+    under the publisher's stated license terms and usage category.
     """
 
     grant_id: str = Field(default_factory=lambda: uuid.uuid4().hex)
     content_url: str
     content_hash: str = Field(description="SHA-256 of the accessed content")
     license_type: str = Field(default="publisher-terms")
+    usage_category: str = Field(
+        default=UsageCategory.SUMMARY,
+        description="Permitted use: summary, rag, research, training, commercial",
+    )
     granted_to: str = Field(default="", description="Payer wallet or agent identifier")
     granted_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
     expires_at: str = Field(default="", description="ISO-8601 expiry, empty = perpetual")
@@ -42,7 +122,8 @@ class UsageGrant(BaseModel):
         """Deterministic payload used for signing / verification."""
         canonical = (
             f"{self.grant_id}|{self.content_url}|{self.content_hash}|"
-            f"{self.license_type}|{self.granted_to}|{self.granted_at}"
+            f"{self.license_type}|{self.usage_category}|"
+            f"{self.granted_to}|{self.granted_at}"
         )
         return canonical.encode()
 
@@ -69,6 +150,7 @@ class BaseLicenseProvider(ABC):
         content_url: str,
         content_hash: str,
         license_type: str,
+        usage_category: str = UsageCategory.SUMMARY,
         granted_to: str,
     ) -> UsageGrant:
         """Issue a signed Usage Grant after successful payment."""

@@ -18,7 +18,7 @@ instead of scraping your HTML.
 ## Step 1: Run Fairfetch Locally
 
 ```bash
-git clone https://github.com/fairfetch/fairfetch.git
+git clone https://github.com/Fairfetch-co/fairfetch.git
 cd fairfetch
 
 # Create a virtual environment and install

@@ -12,7 +12,7 @@ from core.knowledge_packet import KnowledgePacketBuilder
 from core.signatures import Ed25519Signer
 from core.summarizer import Summarizer
 from interfaces.facilitator import BaseFacilitator, PaymentRequirement
-from interfaces.license_provider import BaseLicenseProvider
+from interfaces.license_provider import BaseLicenseProvider, UsageCategory
 from interfaces.summarizer import BaseSummarizer
 from payments.mock_facilitator import MockFacilitator
 from payments.mock_license_facilitator import MockLicenseFacilitator, MockLicenseProvider
@@ -32,6 +32,7 @@ class FairFetchConfig(BaseModel):
     litellm_model: str = Field(default="gpt-4o-mini")
     signing_key: str = Field(default="")
     license_type: str = Field(default="publisher-terms")
+    default_usage_category: str = Field(default=UsageCategory.SUMMARY)
     host: str = Field(default="0.0.0.0")
     port: int = Field(default=8402)
 
@@ -54,6 +55,9 @@ class FairFetchConfig(BaseModel):
             litellm_model=os.getenv("LITELLM_MODEL", "gpt-4o-mini"),
             signing_key=os.getenv("FAIRFETCH_SIGNING_KEY", ""),
             license_type=os.getenv("FAIRFETCH_LICENSE_TYPE", "publisher-terms"),
+            default_usage_category=os.getenv(
+                "FAIRFETCH_DEFAULT_USAGE_CATEGORY", UsageCategory.SUMMARY
+            ),
             host=os.getenv("FAIRFETCH_HOST", "0.0.0.0"),
             port=int(os.getenv("FAIRFETCH_PORT", "8402")),
             llms_txt_url=os.getenv("FAIRFETCH_LLMS_TXT_URL", "/.well-known/llms.txt"),

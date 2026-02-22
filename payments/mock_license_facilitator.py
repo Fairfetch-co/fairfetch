@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from core.signatures import Ed25519Signer
 from interfaces.facilitator import BaseFacilitator, FacilitatorResult, PaymentRequirement
-from interfaces.license_provider import BaseLicenseProvider, UsageGrant
+from interfaces.license_provider import BaseLicenseProvider, UsageCategory, UsageGrant
 from payments.mock_facilitator import MockFacilitator
 
 TEST_GRANT_GRANTED_TO = "test-agent-local"
@@ -27,12 +27,14 @@ class MockLicenseProvider(BaseLicenseProvider):
         content_url: str,
         content_hash: str,
         license_type: str = "publisher-terms",
+        usage_category: str = UsageCategory.SUMMARY,
         granted_to: str = "",
     ) -> UsageGrant:
         grant = UsageGrant(
             content_url=content_url,
             content_hash=content_hash,
             license_type=license_type,
+            usage_category=usage_category,
             granted_to=granted_to or TEST_GRANT_GRANTED_TO,
             publisher_domain=_extract_domain(content_url),
         )
@@ -68,6 +70,7 @@ class MockLicenseFacilitator:
         content_url: str,
         content_hash: str,
         license_type: str = "publisher-terms",
+        usage_category: str = UsageCategory.SUMMARY,
     ) -> tuple[FacilitatorResult, UsageGrant | None]:
         """Settle payment and, if valid, issue a signed Usage Grant."""
         result = await self.facilitator.settle(payment_header, requirement)
@@ -78,6 +81,7 @@ class MockLicenseFacilitator:
             content_url=content_url,
             content_hash=content_hash,
             license_type=license_type,
+            usage_category=usage_category,
             granted_to=result.payer,
         )
         return result, grant

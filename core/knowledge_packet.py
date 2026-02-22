@@ -19,6 +19,7 @@ class DataLineage(BaseModel):
     extraction_timestamp: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
     content_hash: str = ""
     license_type: str = "publisher-terms"
+    usage_category: str = "summary"
     opt_out_respected: bool = True
 
 
@@ -79,6 +80,7 @@ class KnowledgePacketBuilder:
         url: str = "",
         date: str = "",
         license_type: str = "publisher-terms",
+        usage_category: str = "summary",
     ) -> KnowledgePacket:
         content_hash = hashlib.sha256(markdown.encode()).hexdigest()
 
@@ -90,6 +92,7 @@ class KnowledgePacketBuilder:
             source_url=url,
             content_hash=content_hash,
             license_type=license_type,
+            usage_category=usage_category,
         )
 
         return KnowledgePacket(

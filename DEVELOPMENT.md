@@ -104,7 +104,7 @@ from core.signatures import Ed25519Verifier
 public_key_b64 = "..."  # base64-encoded Ed25519 public key
 
 # 2. Reconstruct the signing payload from the grant fields
-payload = f"{grant_id}|{content_url}|{content_hash}|{license_type}|{granted_to}|{granted_at}"
+payload = f"{grant_id}|{content_url}|{content_hash}|{license_type}|{usage_category}|{granted_to}|{granted_at}"
 
 # 3. Verify
 verifier = Ed25519Verifier(public_key_b64)
@@ -124,14 +124,18 @@ print(f"Grant valid: {grant.verify()}")
 ## Testing x402 Payment Flow
 
 ```bash
-# Step 1: Request without payment -> 402
+# Step 1: Request without payment -> 402 (includes available_tiers with all pricing)
 curl -i "http://localhost:8402/content/fetch?url=https://example.com"
-# Response: 402 with {"accepts": {"price": "1000", "asset": "USDC", ...}}
+# Response: 402 with {"accepts": {...}, "available_tiers": {"summary": ..., "rag": ..., "training": ...}}
 
-# Step 2: Request with test payment -> 200 + receipt + grant
+# Step 2: Request with test payment -> 200 + receipt + grant (default usage: summary)
 curl -i -H "X-PAYMENT: test_paid_fairfetch" \
      "http://localhost:8402/content/fetch?url=https://example.com"
-# Response: 200 with X-PAYMENT-RECEIPT and X-FairFetch-License-ID headers
+
+# Step 3: Request with specific usage category -> higher compliance tier
+curl -i -H "X-PAYMENT: test_paid_fairfetch" \
+     "http://localhost:8402/content/fetch?url=https://example.com&usage=training"
+# Response: 200 with X-FairFetch-Usage-Category: training, X-FairFetch-Compliance-Level: strict
 ```
 
 Any `X-PAYMENT` value starting with `test_` works. The token

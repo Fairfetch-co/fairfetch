@@ -23,7 +23,7 @@ info:
     url: https://www.apache.org/licenses/LICENSE-2.0
   contact:
     name: Fairfetch
-    url: https://github.com/fairfetch/fairfetch
+    url: https://github.com/Fairfetch-co/fairfetch
 
 servers:
   - url: http://localhost:8402

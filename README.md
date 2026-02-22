@@ -227,28 +227,33 @@ asyncio.run(main())
 ## 💳 The x402 Payment Flow
 
 ```
-Agent                        Fairfetch                   Facilitator
-  |                              |                            |
-  |  GET /content/fetch?url=...  |                            |
-  |----------------------------->|                            |
-  |                              |                            |
-  |  402 Payment Required        |                            |
-  |  { accepts: { price, asset,  |                            |
-  |    network, payTo } }        |                            |
-  |<-----------------------------|                            |
-  |                              |                            |
-  |  GET + X-PAYMENT: <proof>    |                            |
-  |----------------------------->|                            |
-  |                              |  POST /settle              |
-  |                              |------------------------->  |
-  |                              |       { valid, tx_hash }   |
-  |                              |<-------------------------  |
-  |                              |                            |
-  |  200 OK + Content            |                            |
-  |  X-PAYMENT-RECEIPT: 0x...    |                            |
-  |  X-FairFetch-License-ID: ... |                            |
-  |  X-FairFetch-Origin-Sig: ... |                            |
-  |<-----------------------------|                            |
+Agent                         Fairfetch                   Facilitator
+  |                               |                            |
+  |  GET /content/fetch?url=...   |                            |
+  |  &usage=rag                   |                            |
+  |------------------------------>|                            |
+  |                               |                            |
+  |  402 Payment Required         |                            |
+  |  { accepts: { price (2x),    |                            |
+  |    usage_category: "rag" },   |                            |
+  |    available_tiers: {...} }   |                            |
+  |<------------------------------|                            |
+  |                               |                            |
+  |  GET + X-PAYMENT: <proof>     |                            |
+  |------------------------------>|                            |
+  |                               |  POST /settle              |
+  |                               |------------------------->  |
+  |                               |       { valid, tx_hash }   |
+  |                               |<-------------------------  |
+  |                               |                            |
+  |  200 OK + Content             |                            |
+  |  X-PAYMENT-RECEIPT: 0x...     |                            |
+  |  X-FairFetch-License-ID: ...  |                            |
+  |  X-FairFetch-Usage-Category:  |                            |
+  |    rag                        |                            |
+  |  X-FairFetch-Compliance-Level:|                            |
+  |    standard                   |                            |
+  |<------------------------------|                            |
 ```
 
 > [!NOTE]
@@ -257,9 +262,41 @@ Agent                        Fairfetch                   Facilitator
 
 <br />
 
+## 📊 Usage Categories & Tiered Pricing
+
+Not all content usage is equal. Fairfetch defines **usage categories** that control what an AI agent is permitted to do with the content, with escalating compliance requirements and pricing:
+
+| Category | Compliance | Price Multiplier | Use Case |
+|----------|-----------|-----------------|----------|
+| `summary` | Standard | 1x | Display a short summary or snippet |
+| `rag` | Standard | 2x | Retrieval-Augmented Generation / search grounding |
+| `research` | Elevated | 3x | Academic or internal research use |
+| `training` | Strict | 5x | Model fine-tuning or pre-training |
+| `commercial` | Strict | 10x | Redistribution or commercial derivative works |
+
+> [!IMPORTANT]
+> The `usage` parameter is specified via query param (`?usage=rag`), HTTP header (`X-USAGE-CATEGORY: training`), or MCP tool argument. It determines the effective price and the compliance level recorded in the Usage Grant.
+
+```bash
+# Fetch for RAG (2x base price)
+curl -H "X-PAYMENT: test_paid_fairfetch" \
+     "http://localhost:8402/content/fetch?url=https://example.com&usage=rag"
+
+# Fetch for training (5x base price, strict compliance)
+curl -H "X-PAYMENT: test_paid_fairfetch" \
+     "http://localhost:8402/content/fetch?url=https://example.com&usage=training"
+
+# The 402 response includes all available tiers and their prices
+curl "http://localhost:8402/content/fetch?url=https://example.com"
+```
+
+Every 402 response includes an `available_tiers` object showing the price for each category, so agents can choose the appropriate tier for their needs.
+
+<br />
+
 ## 🔐 Usage Grants (Legal Indemnity)
 
-A Usage Grant is an Ed25519-signed token proving legal content access:
+A Usage Grant is an Ed25519-signed token proving legal content access under a specific usage category:
 
 ```json
 {
@@ -267,6 +304,7 @@ A Usage Grant is an Ed25519-signed token proving legal content access:
   "content_url": "https://publisher.com/article",
   "content_hash": "sha256:...",
   "license_type": "publisher-terms",
+  "usage_category": "rag",
   "granted_to": "0xPayerWallet...",
   "granted_at": "2026-02-22T12:00:00Z",
   "signature": {
@@ -276,6 +314,8 @@ A Usage Grant is an Ed25519-signed token proving legal content access:
   }
 }
 ```
+
+The `usage_category` field is part of the cryptographic signature, so it cannot be altered after issuance. An agent granted `summary` access cannot claim `training` rights — a new grant with appropriate pricing is required.
 
 <details>
 <summary><strong>How to verify a grant locally</strong></summary>
@@ -287,7 +327,7 @@ A Usage Grant is an Ed25519-signed token proving legal content access:
 # Or extract it from any response's grant signature (the publicKey field)
 
 # The grant's signature covers:
-#   grant_id | content_url | content_hash | license_type | granted_to | granted_at
+#   grant_id | content_url | content_hash | license_type | usage_category | granted_to | granted_at
 # Verify using any Ed25519 library against the public key
 ```
 
@@ -297,7 +337,7 @@ A Usage Grant is an Ed25519-signed token proving legal content access:
 
 ## 🤖 MCP Server (Direct Pipeline)
 
-Three tools for AI agents:
+Three tools for AI agents (all accept an optional `usage` parameter for tier selection):
 
 | Tool | Description |
 |------|-------------|
@@ -380,6 +420,8 @@ Edge boilerplates are provided for **Cloudflare Workers**, **AWS CloudFront Lamb
 |--------|-------------|
 | `X-Data-Origin-Verified` | EU AI Act origin attestation |
 | `X-AI-License-Type` | `publisher-terms` · `commercial` · `research-only` · `opt-out` |
+| `X-FairFetch-Usage-Category` | `summary` · `rag` · `research` · `training` · `commercial` |
+| `X-FairFetch-Compliance-Level` | `standard` · `elevated` · `strict` |
 | `X-FairFetch-Origin-Signature` | Ed25519 signature of content body |
 | `X-FairFetch-License-ID` | Usage Grant compact identifier |
 | `X-Content-Hash` | `sha256:<hex>` hash of content |
@@ -414,7 +456,7 @@ fairfetch/
 ├── interfaces/              # Open Standard (abstract bases)
 │   ├── facilitator.py       # BaseFacilitator
 │   ├── summarizer.py        # BaseSummarizer
-│   └── license_provider.py  # BaseLicenseProvider + UsageGrant
+│   └── license_provider.py  # BaseLicenseProvider + UsageGrant + UsageCategory
 ├── core/                    # Green AI layer
 │   ├── converter.py         # HTML → Markdown (trafilatura)
 │   ├── summarizer.py        # LiteLLM implementation
@@ -465,6 +507,7 @@ fairfetch/
 | `FAIRFETCH_CONTENT_PRICE` | `1000` | Price in smallest USDC unit |
 | `FAIRFETCH_SIGNING_KEY` | *(generated)* | Ed25519 private key (b64) |
 | `FAIRFETCH_LICENSE_TYPE` | `publisher-terms` | Default license |
+| `FAIRFETCH_DEFAULT_USAGE_CATEGORY` | `summary` | Default usage tier for pricing |
 | `FAIRFETCH_ENABLE_GRANTS` | `true` | Issue Usage Grants |
 | `FAIRFETCH_PREFERRED_ACCESS` | `true` | Inject bot-steering headers |
 | `LITELLM_MODEL` | `gpt-4o-mini` | LLM for summarization |

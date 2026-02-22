@@ -27,7 +27,7 @@ from __future__ import annotations
 import os
 
 from interfaces.facilitator import BaseFacilitator, FacilitatorResult, PaymentRequirement
-from interfaces.license_provider import BaseLicenseProvider, UsageGrant
+from interfaces.license_provider import BaseLicenseProvider, UsageCategory, UsageGrant
 
 
 class CloudFacilitator(BaseFacilitator):
@@ -93,6 +93,7 @@ class CloudLicenseProvider(BaseLicenseProvider):
         content_url: str,
         content_hash: str,
         license_type: str,
+        usage_category: str = UsageCategory.SUMMARY,
         granted_to: str,
     ) -> UsageGrant:
         raise NotImplementedError(

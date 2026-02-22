@@ -20,7 +20,7 @@ from core.converter import ContentConverter
 from core.knowledge_packet import KnowledgePacketBuilder
 from core.signatures import Ed25519Signer
 from core.summarizer import Summarizer
-from interfaces.license_provider import BaseLicenseProvider
+from interfaces.license_provider import BaseLicenseProvider, UsageCategory
 from payments.mock_license_facilitator import MockLicenseProvider
 
 mcp = FastMCP(
@@ -43,17 +43,27 @@ def _get_summarizer() -> Summarizer:
 
 
 @mcp.tool()
-async def get_site_summary(url: str) -> str:
+async def get_site_summary(
+    url: str,
+    usage: str = UsageCategory.SUMMARY,
+) -> str:
     """Fetch a web page and return a concise AI-generated summary with legal provenance.
 
     Returns a signed summary with a Usage Grant token that proves legal access.
 
     Args:
         url: The URL of the article or page to summarize.
+        usage: Usage category — summary, rag, research, training, or commercial.
+               Controls the compliance level and pricing tier.
 
     Returns:
         JSON with title, author, summary, origin signature, and usage grant.
     """
+    try:
+        usage_cat = UsageCategory(usage.lower())
+    except ValueError:
+        usage_cat = UsageCategory.SUMMARY
+
     result = await _converter.from_url(url)
     summarizer = _get_summarizer()
     summary_result = await summarizer.summarize(result.markdown)
@@ -65,6 +75,7 @@ async def get_site_summary(url: str) -> str:
         content_url=url,
         content_hash=content_hash,
         license_type="publisher-terms",
+        usage_category=usage_cat.value,
         granted_to="mcp-agent",
     )
 
@@ -79,13 +90,15 @@ async def get_site_summary(url: str) -> str:
             "origin_verified": True,
             "signature": sig.signature,
             "public_key": sig.public_key,
+            "usage_category": usage_cat.value,
             "usage_grant": {
                 "grant_id": grant.grant_id,
                 "license_type": grant.license_type,
+                "usage_category": grant.usage_category,
                 "granted_at": grant.granted_at,
                 "content_hash": grant.content_hash,
                 "signature": grant.signature.signature if grant.signature else None,
-                "verify_with_public_key": grant.signature.public_key if grant.signature else None,
+                "verify_with_public_key": (grant.signature.public_key if grant.signature else None),
             },
         },
         indent=2,
@@ -117,7 +130,10 @@ async def fetch_article_markdown(url: str) -> str:
 
 
 @mcp.tool()
-async def get_verified_facts(url: str) -> str:
+async def get_verified_facts(
+    url: str,
+    usage: str = UsageCategory.RAG,
+) -> str:
     """Fetch a web page and return a signed knowledge packet with full data lineage.
 
     Includes: cryptographic proof of origin (Ed25519), content hash,
@@ -125,10 +141,17 @@ async def get_verified_facts(url: str) -> str:
 
     Args:
         url: The URL of the content to verify.
+        usage: Usage category — summary, rag, research, training, or commercial.
+               Controls the compliance level and pricing tier.
 
     Returns:
         A JSON-LD knowledge packet with signature, lineage, and usage grant.
     """
+    try:
+        usage_cat = UsageCategory(usage.lower())
+    except ValueError:
+        usage_cat = UsageCategory.RAG
+
     tracker = DataLineageTracker(source_url=url)
 
     result = await _converter.from_url(url)
@@ -152,12 +175,14 @@ async def get_verified_facts(url: str) -> str:
         author=result.author or "",
         url=url,
         date=result.date or "",
+        usage_category=usage_cat.value,
     )
 
     grant = await _license_provider.issue_grant(
         content_url=url,
         content_hash=md_hash,
         license_type="publisher-terms",
+        usage_category=usage_cat.value,
         granted_to="mcp-agent",
     )
 
@@ -166,6 +191,7 @@ async def get_verified_facts(url: str) -> str:
     output["fairfetch:usageGrant"] = {
         "grant_id": grant.grant_id,
         "license_type": grant.license_type,
+        "usage_category": grant.usage_category,
         "content_hash": grant.content_hash,
         "granted_at": grant.granted_at,
         "valid": grant.verify(),
@@ -180,6 +206,17 @@ async def get_verified_facts(url: str) -> str:
 @mcp.resource("fairfetch://config")
 async def get_config() -> str:
     """Current Fairfetch server configuration (non-sensitive)."""
+    from interfaces.license_provider import USAGE_CATEGORY_META
+
+    usage_tiers = {
+        cat.value: {
+            "compliance_level": str(meta["compliance_level"]),
+            "price_multiplier": meta["price_multiplier"],
+            "description": str(meta["description"]),
+        }
+        for cat, meta in USAGE_CATEGORY_META.items()
+    }
+
     return json.dumps(
         {
             "version": "0.2.0",
@@ -191,6 +228,7 @@ async def get_config() -> str:
                 "application/ai-context+json",
                 "application/ld+json",
             ],
+            "usage_categories": usage_tiers,
             "pillars": ["green-ai", "legal-safe-harbor", "direct-pipeline"],
         },
         indent=2,
