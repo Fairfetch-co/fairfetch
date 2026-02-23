@@ -19,7 +19,7 @@ from interfaces.summarizer import BaseSummarizer
 from payments.mock_facilitator import MockFacilitator
 from payments.mock_license_facilitator import MockLicenseFacilitator, MockLicenseProvider
 
-# Default User-Agent substrings for search engines allowed free indexing (publisher can override)
+# Default User-Agent substrings for search engines allowed free indexing (site owner can override)
 _DEFAULT_SEARCH_ENGINES_ALLOWED = (
     "Googlebot",
     "Bingbot",

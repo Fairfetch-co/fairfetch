@@ -29,7 +29,7 @@ class UsageCategory(StrEnum):
     """Defines the permitted use of accessed content.
 
     Categories are listed in order of increasing price (first = free/cheapest):
-      - SEARCH_ENGINE_INDEXING: Search engine crawling for indexing (free when allowed by publisher)
+      - SEARCH_ENGINE_INDEXING: Search engine indexing (free when site owner allows)
       - SUMMARY:   Display a short summary or snippet
       - RAG:       Retrieval-Augmented Generation / search grounding
       - RESEARCH:  Academic or internal research use
@@ -58,7 +58,7 @@ USAGE_CATEGORY_META: dict[UsageCategory, dict[str, object]] = {
         "compliance_level": ComplianceLevel.STANDARD,
         "price_multiplier": 0,
         "requires_audit_trail": False,
-        "description": "Search engine crawling for indexing (free when publisher allows)",
+        "description": "Search engine crawling for indexing (free when site owner allows)",
     },
     UsageCategory.SUMMARY: {
         "compliance_level": ComplianceLevel.STANDARD,
@@ -109,7 +109,7 @@ class UsageGrant(BaseModel):
     """Cryptographically signed proof of legal content access.
 
     AI companies retain this token as evidence of authorized usage
-    under the publisher's stated license terms and usage category.
+    under the content owner's stated license terms and usage category.
     """
 
     grant_id: str = Field(default_factory=lambda: uuid.uuid4().hex)

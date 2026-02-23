@@ -1,6 +1,6 @@
 """Copyright opt-out tracking per EU AI Act Article 53.
 
-Publishers can register domains/URLs that opt out of AI training.
+Content creators and site owners can register domains/URLs that opt out of AI training.
 This module maintains an append-only log so AI agents can verify
 whether content is available for training or restricted to inference-only.
 """
@@ -26,12 +26,12 @@ class OptOutEntry(BaseModel):
     timestamp: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
     reference: str = Field(
         default="",
-        description="Link to the publisher's opt-out declaration (e.g. robots.txt, TDM policy)",
+        description="Link to the content owner's opt-out declaration (e.g. robots.txt, TDM policy)",
     )
 
 
 class CopyrightOptOutLog:
-    """Append-only log of publisher copyright opt-out declarations.
+    """Append-only log of content owner copyright opt-out declarations.
 
     Persists to a local JSON-lines file for auditability.
     """

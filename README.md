@@ -15,11 +15,12 @@
 
 <br />
 
-An open-source infrastructure layer that lets publishers serve machine-ready
-content directly to AI agents — replacing illegal scraping with a paid, signed,
-legally verifiable pipeline.
+An open-source infrastructure layer for **any site with content** — blogs, news,
+portfolios, forums, docs. Site owners and content creators serve machine-ready
+content to AI agents and monetize AI traffic, replacing illegal scraping with a
+paid, signed, legally verifiable pipeline.
 
-[Quick Start](#-quick-start) · [Publisher Guide](docs/PUBLISHER_GUIDE.md) · [AI Agent Guide](docs/AI_AGENT_GUIDE.md) · [Development](DEVELOPMENT.md)
+[Quick Start](#-quick-start) · [Site owner guide](docs/PUBLISHER_GUIDE.md) · [AI Agent Guide](docs/AI_AGENT_GUIDE.md) · [Development](DEVELOPMENT.md)
 
 </div>
 
@@ -39,7 +40,7 @@ Fairfetch solves all three problems at once:
 
 **Pre-process once at the source.**
 
-Publishers convert HTML to clean Markdown and generate summaries once. AI agents fetch the result — eliminating the redundant 1,000x compute cost of web crawling.
+Sites convert HTML to clean Markdown and generate summaries once. AI agents fetch the result — eliminating the redundant 1,000x compute cost of web crawling.
 
 </td>
 <td width="33%" valign="top">
@@ -48,7 +49,7 @@ Publishers convert HTML to clean Markdown and generate summaries once. AI agents
 
 **Cryptographic proof of legal access.**
 
-Every request produces an Ed25519-signed **Usage Grant** — courtroom-grade evidence of authorized usage. Publishers set the terms. AI companies sleep at night.
+Every request produces an Ed25519-signed **Usage Grant** — courtroom-grade evidence of authorized usage. You set the terms. AI companies sleep at night.
 
 </td>
 <td width="33%" valign="top">
@@ -70,12 +71,12 @@ Edge workers steer known bots (GPTBot, CCBot) from raw HTML toward the official 
 <table>
 <tr>
 <th></th>
-<th>📰 Publisher (Content Provider)</th>
+<th>📄 Content provider (site owner)</th>
 <th>🤖 AI Agent (Consumer)</th>
 </tr>
 <tr>
 <td><strong>Goal</strong></td>
-<td>Monetize content, stop illegal scraping</td>
+<td>Monetize content from AI traffic, stop illegal scraping</td>
 <td>Get clean content with legal cover</td>
 </tr>
 <tr>
@@ -90,7 +91,7 @@ Edge workers steer known bots (GPTBot, CCBot) from raw HTML toward the official 
 </tr>
 <tr>
 <td><strong>Guide</strong></td>
-<td><a href="docs/PUBLISHER_GUIDE.md"><strong>Publisher Onboarding →</strong></a></td>
+<td><a href="docs/PUBLISHER_GUIDE.md"><strong>Site owner onboarding →</strong></a></td>
 <td><a href="docs/AI_AGENT_GUIDE.md"><strong>AI Agent Integration →</strong></a></td>
 </tr>
 </table>
@@ -111,7 +112,7 @@ make dev
 ```
 
 <details>
-<summary><strong>For Publishers — Verify your setup</strong></summary>
+<summary><strong>For site owners — Verify your setup</strong></summary>
 
 ```bash
 # Health check
@@ -316,8 +317,8 @@ You get back a `402 Payment Required` response — this is not an error, it's a 
 }
 ```
 
-- **`price`** — cost in the smallest unit of USDC (1000 = $0.001). The **base price** can vary by content URL path when the publisher sets [route-based pricing](docs/PUBLISHER_GUIDE.md#step-3-set-your-sites-options) (e.g. `/business` vs `/sports`); it is then multiplied by the usage tier.
-- **`payTo`** — the publisher's wallet address where payment goes.
+- **`price`** — cost in the smallest unit of USDC (1000 = $0.001). The **base price** can vary by content URL path when the site owner sets [route-based pricing](docs/PUBLISHER_GUIDE.md#step-3-set-your-sites-options) (e.g. `/business` vs `/sports`); it is then multiplied by the usage tier.
+- **`payTo`** — the content owner's wallet address where payment goes.
 - **`available_tiers`** — all usage options with their prices, so you can pick the right one.
 
 **Step 2 — Pay and get content:**
@@ -337,7 +338,7 @@ X-PAYMENT-RECEIPT: 0x6d8ce1bf2daf...     # Transaction proof (like a bank receip
 X-FairFetch-License-ID: 47db4290...:k2+w  # Your legal access grant (store this!)
 X-FairFetch-Usage-Category: rag           # Confirmed: you paid for RAG usage
 X-FairFetch-Compliance-Level: standard    # Compliance tier for this usage
-X-FairFetch-Origin-Signature: GllQLb/...  # Publisher's digital signature on the content
+X-FairFetch-Origin-Signature: GllQLb/...  # Content owner's digital signature on the content
 X-Content-Hash: sha256:2c449548...        # Fingerprint of the content
 ```
 
@@ -412,7 +413,7 @@ Not all content usage is equal. Fairfetch defines **usage categories** that cont
 
 | Category | Compliance | Price Multiplier | Use Case |
 |----------|-----------|-----------------|----------|
-| `search_engine_indexing` | Standard | 0x (free) | Search engine crawling for indexing; free when publisher allows (see [config](#-configuration)) |
+| `search_engine_indexing` | Standard | 0x (free) | Search engine crawling for indexing; free when site owner allows (see [config](#-configuration)) |
 | `summary` | Standard | 1x | Display a short summary or snippet |
 | `rag` | Standard | 2x | Retrieval-Augmented Generation / search grounding |
 | `research` | Elevated | 3x | Academic or internal research use |
@@ -448,7 +449,7 @@ Every field is included in the digital signature, so nothing can be changed afte
 ```json
 {
   "grant_id": "a1b2c3d4...",
-  "content_url": "https://publisher.com/article",
+  "content_url": "https://example.com/article",
   "content_hash": "sha256:2c449548...",
   "license_type": "publisher-terms",
   "usage_category": "rag",
@@ -467,14 +468,14 @@ Every field is included in the digital signature, so nothing can be changed afte
 | `grant_id` | A unique ID for this specific access event — like an order number. |
 | `content_url` | The article or page that was accessed. |
 | `content_hash` | A fingerprint of the exact content delivered, proving what was received. |
-| `license_type` | The terms set by the publisher (e.g. "publisher-terms", "research-only"). |
+| `license_type` | The terms set by the content owner (e.g. "publisher-terms", "research-only"). |
 | `usage_category` | What the AI agent said it would use the content for (e.g. "rag", "training"). This is locked in — you can't pay for "summary" and later claim you used it for "training." |
 | `granted_to` | The wallet or identity of who paid. |
 | `granted_at` | When the access happened. |
-| `signature` | The publisher's digital signature covering all the fields above. Like a notarized stamp — unforgeable and tamper-proof. The `publicKey` lets anyone independently verify it. |
+| `signature` | The content owner's digital signature covering all the fields above. Like a notarized stamp — unforgeable and tamper-proof. The `publicKey` lets anyone independently verify it. |
 
 > [!IMPORTANT]
-> **Store your grants.** If a publisher ever questions whether you had permission to use their content, the grant is your courtroom-ready evidence. No he-said-she-said — just math.
+> **Store your grants.** If a content owner ever questions whether you had permission to use their content, the grant is your courtroom-ready evidence. No he-said-she-said — just math.
 
 <details>
 <summary><strong>How to verify a grant</strong></summary>
@@ -488,7 +489,7 @@ import base64
 public_key = base64.b64decode("J2nlmFsgoUtF3Avdmkt...")
 signature  = base64.b64decode("GllQLb/V4Vd+SuTY9Gk...")
 
-payload = "a1b2c3d4...|https://publisher.com/article|sha256:2c449548...|publisher-terms|rag|0xPayerWallet...|2026-02-22T12:00:00Z"
+payload = "a1b2c3d4...|https://example.com/article|sha256:2c449548...|publisher-terms|rag|0xPayerWallet...|2026-02-22T12:00:00Z"
 
 VerifyKey(public_key).verify(payload.encode(), signature)  # raises if tampered
 ```
@@ -579,7 +580,7 @@ X-FairFetch-MCP-Endpoint: /mcp
 Link: </.well-known/llms.txt>; rel="ai-policy", </mcp>; rel="ai-content-api"
 ```
 
-The `/health` endpoint reports `scraper_interceptions` — the count of crawler requests steered, showing publishers the conversion rate.
+The `/health` endpoint reports `scraper_interceptions` — the count of crawler requests steered, showing site owners the conversion rate.
 
 Edge boilerplates are provided for **Cloudflare Workers**, **AWS CloudFront Lambda@Edge**, **Fastly Compute@Edge**, and **Akamai EdgeWorkers**.
 
@@ -591,11 +592,11 @@ Every successful response includes these headers. Think of them as a receipt and
 
 | Header | What It Means | Example Value |
 |--------|---------------|---------------|
-| `X-Data-Origin-Verified` | "This content came directly from the publisher, not a third party." Required by the EU AI Act for provenance tracking. | `true` |
-| `X-AI-License-Type` | The terms under which the publisher is licensing this content to you. | `publisher-terms` |
+| `X-Data-Origin-Verified` | "This content came directly from the content source, not a third party." Required by the EU AI Act for provenance tracking. | `true` |
+| `X-AI-License-Type` | The terms under which the content owner is licensing this content to you. | `publisher-terms` |
 | `X-FairFetch-Usage-Category` | What you told us you're using the content for. This is locked into your Usage Grant. | `rag` |
 | `X-FairFetch-Compliance-Level` | How strict the rules are for your chosen usage. Higher-impact uses (like training) require stricter compliance. | `standard` |
-| `X-FairFetch-Origin-Signature` | A digital fingerprint proving the publisher's server produced this exact content. Like a notary stamp — tamper-proof. | `GllQLb/V4Vd+Su...` (base64) |
+| `X-FairFetch-Origin-Signature` | A digital fingerprint proving the content owner's server produced this exact content. Like a notary stamp — tamper-proof. | `GllQLb/V4Vd+Su...` (base64) |
 | `X-FairFetch-License-ID` | Your Usage Grant reference. Store this — it's your proof of legal access if questions arise later. Format: `grant_id:signature_prefix`. | `47db4290...:k2+wXE3x...` |
 | `X-Content-Hash` | A fingerprint of the content body itself, so you can verify nothing was altered in transit. | `sha256:2c449548...` |
 | `X-PAYMENT-RECEIPT` | Proof that payment was settled. For x402: a transaction hash. For wallets: a ledger transaction ID (`ff_...`). | `0x6d8ce1bf...` or `ff_3a7c9e...` |
@@ -620,7 +621,7 @@ Every successful response includes these headers. Think of them as a receipt and
 | `plugins/` | Placeholder stubs | Managed Clearinghouse |
 
 > The open-source repo is **fully functional** for local development and testing.
-> The commercial cloud layer adds real on-chain payments, publisher-verified
+> The commercial cloud layer adds real on-chain payments, content-owner-verified
 > key management, and persistent Usage Grant audit trails.
 
 <br />
@@ -629,7 +630,7 @@ Every successful response includes these headers. Think of them as a receipt and
 
 ```
 fairfetch/
-├── docs/                    # Guides for publishers & AI agents
+├── docs/                    # Guides for site owners & AI agents
 │   ├── CONCEPTS.md          # Plain-language concepts & headers
 │   ├── PUBLISHER_GUIDE.md   # CDN deployment & onboarding
 │   └── AI_AGENT_GUIDE.md    # MCP/REST integration for agents
@@ -685,9 +686,9 @@ fairfetch/
 |----------|---------|-------------|
 | `FAIRFETCH_TEST_MODE` | `true` | Enable mock facilitator + grants; when `false`, CORS is restricted to your domain and no test wallets are pre-seeded |
 | `FAIRFETCH_PUBLISHER_WALLET` | `0x000...` | EVM wallet for payments |
-| `FAIRFETCH_PUBLISHER_DOMAIN` | `localhost` | Publisher domain (also used as CORS origin when test mode is off) |
+| `FAIRFETCH_PUBLISHER_DOMAIN` | `localhost` | Your site domain (also used as CORS origin when test mode is off) |
 | `FAIRFETCH_CONTENT_PRICE` | `1000` | Default base price in smallest USDC unit; used when no route rule matches |
-| `FAIRFETCH_PRICE_BY_ROUTE` | *(omit)* | Optional JSON map of path prefix → price for variable pricing by route (e.g. `{"": "1000", "/business": "2000", "/sports": "500"}`). See [Publisher Guide](docs/PUBLISHER_GUIDE.md). |
+| `FAIRFETCH_PRICE_BY_ROUTE` | *(omit)* | Optional JSON map of path prefix → price for variable pricing by route (e.g. `{"": "1000", "/business": "2000", "/sports": "500"}`). See [Site owner guide](docs/PUBLISHER_GUIDE.md). |
 | `FAIRFETCH_SIGNING_KEY` | *(generated)* | Ed25519 private key (b64) |
 | `FAIRFETCH_LICENSE_TYPE` | `publisher-terms` | Default license |
 | `FAIRFETCH_DEFAULT_USAGE_CATEGORY` | `summary` | Default usage tier for pricing |
@@ -713,7 +714,7 @@ fairfetch/
 | Guide | What's Inside |
 |-------|---------------|
 | [**Concepts (Plain Language)**](docs/CONCEPTS.md) | What every header, value, and term means — no jargon |
-| [**Publisher Onboarding**](docs/PUBLISHER_GUIDE.md) | CDN deployment for Cloudflare, CloudFront, Fastly, Akamai, Nginx |
+| [**Site owner onboarding**](docs/PUBLISHER_GUIDE.md) | CDN deployment for Cloudflare, CloudFront, Fastly, Akamai, Nginx |
 | [**AI Agent Integration**](docs/AI_AGENT_GUIDE.md) | MCP for Claude/Cursor, REST clients (Python & TS), Usage Grant verification |
 | [**Development**](DEVELOPMENT.md) | Local dev setup, testing the three pillars, architecture decisions |
 | [**Contributing**](CONTRIBUTING.md) | How to contribute, CLA, code standards |
@@ -732,6 +733,6 @@ fairfetch/
 
 **[Website](https://fairfetch.co)** · **[Docs](docs/)** · **[Issues](https://github.com/Fairfetch-co/fairfetch/issues)** · **[Discussions](https://github.com/Fairfetch-co/fairfetch/discussions)**
 
-<sub>Built with conviction that AI and publishers can thrive together.</sub>
+<sub>Built with conviction that AI and content creators can thrive together.</sub>
 
 </div>

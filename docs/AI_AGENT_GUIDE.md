@@ -1,6 +1,6 @@
 # AI Agent Integration Guide
 
-**Consume publisher content through Fairfetch instead of scraping — with clean Markdown, verified provenance, and a cryptographic Usage Grant for legal indemnity.**
+**Consume content from Fairfetch-enabled sites instead of scraping — with clean Markdown, verified provenance, and a cryptographic Usage Grant for legal indemnity.**
 
 This guide is for **developers** building AI agents, RAG pipelines, or MCP clients that need to fetch web content in a compliant, paid, and legally verifiable way.
 
@@ -30,7 +30,7 @@ This guide is for **developers** building AI agents, RAG pipelines, or MCP clien
 |-------------|---------|--------------|
 | **Python** | 3.11+ | `python3 --version` or `python --version` |
 | **Node.js** (for MCP Inspector only) | 18+ | `node --version` |
-| **Network** | Outbound HTTPS | Can reach publisher API and (if used) LiteLLM/OpenAI |
+| **Network** | Outbound HTTPS | Can reach content provider API and (if used) LiteLLM/OpenAI |
 
 **Run these before starting:**
 
@@ -135,7 +135,7 @@ If you see Markdown content, the MCP server and content path work.
 }
 ```
 
-Restart Claude or Cursor. You can then ask: “Summarize the article at https://example.com” or “Get verified facts from https://publisher.com/article”.
+Restart Claude or Cursor. You can then ask: “Summarize the article at https://example.com” or “Get verified facts from https://example.com/article”.
 
 ### MCP tools and resources
 
@@ -193,7 +193,7 @@ curl -s "http://localhost:8402/content/fetch?url=https://example.com"
 
 Only **public HTTP/HTTPS** URLs are allowed. Private IPs and cloud metadata URLs return **400** with `{"error": "url_blocked", "detail": "The requested URL is not allowed."}`.
 
-**Note:** Publishers can set different prices for different URL paths (route-based pricing). The 402 `price` and `available_tiers` may therefore differ per content URL (e.g. `.../business` vs `.../sports`). Always use the quoted price from the 402 for the URL you are fetching.
+**Note:** Site owners can set different prices for different URL paths (route-based pricing). The 402 `price` and `available_tiers` may therefore differ per content URL (e.g. `.../business` vs `.../sports`). Always use the quoted price from the 402 for the URL you are fetching.
 
 ### Step 2a: Pay with one-time token (x402)
 
@@ -274,10 +274,10 @@ curl -X POST "http://localhost:8402/wallet/topup?token=wallet_abc123...&amount=5
 | **402** (no payment) | No `X-PAYMENT` or `X-WALLET-TOKEN` | Add payment header; in test use `X-PAYMENT: test_paid_fairfetch` or a valid wallet token. |
 | **402** `wallet_error: insufficient_balance` | Wallet balance &lt; request price | Top up the wallet or use a different wallet/token. |
 | **402** `verification_error` | Invalid or expired payment proof | Retry with a fresh payment proof or wallet token. |
-| **502** `upstream_fetch_failed` | Publisher’s server or target URL unreachable | Retry later; check target URL is public and reachable. |
+| **502** `upstream_fetch_failed` | Content provider’s server or target URL unreachable | Retry later; check target URL is public and reachable. |
 | **503** `summarization_unavailable` | LLM not configured (e.g. no API key) | Use `Accept: text/markdown` for content without summary, or configure LiteLLM. |
 | **Connection refused** | Fairfetch server not running or wrong port | Start the API (e.g. `make dev`) and use the correct base URL and port. |
-| **CORS errors** (browser) | Origin not allowed (production) | Server allows only `https://{publisher_domain}` when not in test mode; call from that origin or from a non-browser client. |
+| **CORS errors** (browser) | Origin not allowed (production) | Server allows only the site's domain when not in test mode; call from that origin or from a non-browser client. |
 
 **Example: handling 402 in code**
 
@@ -312,7 +312,7 @@ The signed payload is:
 {grant_id}|{content_url}|{content_hash}|{license_type}|{usage_category}|{granted_to}|{granted_at}
 ```
 
-Use the publisher’s public key (e.g. from `fairfetch://public-key` or response headers) and verify the signature with an Ed25519 library.
+Use the content owner’s public key (e.g. from `fairfetch://public-key` or response headers) and verify the signature with an Ed25519 library.
 
 ---
 

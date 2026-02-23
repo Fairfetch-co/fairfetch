@@ -8,7 +8,7 @@ info:
     ## Payment Flow (x402)
     Uses HTTP status 402 Payment Required per RFC 9110 (HTTP Semantics).
     1. Request content without `X-PAYMENT` header → receive `402 Payment Required`
-    2. Response body contains `accepts` object with price, asset, network, and wallet (price may vary by content URL path when publisher uses route-based pricing). Responses include `Cache-Control: no-store` and must not be cached.
+    2. Response body contains `accepts` object with price, asset, network, and wallet (price may vary by content URL path when site owner uses route-based pricing). Responses include `Cache-Control: no-store` and must not be cached.
     3. Obtain payment proof via the facilitator
     4. Retry with `X-PAYMENT: <proof>` header → receive content
 
@@ -245,7 +245,7 @@ components:
     X-Data-Origin-Verified:
       description: |
         EU AI Act compliance header. Attests that the content originates
-        from a verified publisher with cryptographic proof.
+        from a verified content source with cryptographic proof.
       schema:
         type: string
         enum: ['true', 'false']
@@ -371,7 +371,7 @@ components:
           properties:
             price:
               type: string
-              description: Base amount in smallest unit (e.g. USDC). May vary by content URL path when publisher configures route-based pricing.
+              description: Base amount in smallest unit (e.g. USDC). May vary by content URL path when site owner configures route-based pricing.
               example: '1000'
             asset:
               type: string
@@ -381,7 +381,7 @@ components:
               example: base
             payTo:
               type: string
-              description: Publisher EVM wallet address
+              description: Content owner EVM wallet address
             facilitator:
               type: string
               format: uri

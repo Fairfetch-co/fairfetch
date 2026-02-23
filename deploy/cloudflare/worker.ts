@@ -5,7 +5,7 @@
  *  1. Detects AI agents / known crawlers
  *  2. Steers scrapers toward the official FairFetch API (Legal Path)
  *  3. Proxies legitimate requests with x402 payment enforcement
- *  4. Logs "Scraper Interceptions" for publisher analytics
+ *  4. Logs "Scraper Interceptions" for site owner analytics
  */
 
 interface Env {

@@ -23,6 +23,7 @@ from fastapi import Request, Response
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 
+from compliance.headers import _sanitize_header_value
 from core.search_engine import is_allowed_search_engine
 from interfaces.facilitator import BaseFacilitator, PaymentRequirement
 from interfaces.license_provider import BaseLicenseProvider, UsageCategory
@@ -285,7 +286,7 @@ class X402Middleware(BaseHTTPMiddleware):
                 usage_category=usage_cat,
                 granted_to=payer,
             )
-            response.headers[LICENSE_ID_HEADER] = grant.to_header_value()
+            response.headers[LICENSE_ID_HEADER] = _sanitize_header_value(grant.to_header_value())
             logger.info("Usage grant issued: %s (usage=%s)", grant.grant_id, usage_cat)
         except Exception:
             logger.exception("Failed to issue usage grant")

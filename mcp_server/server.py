@@ -1,6 +1,6 @@
 """Fairfetch MCP Server — the Direct Pipeline for AI agents.
 
-Exposes publisher content as MCP Tools and Resources. This is the
+Exposes content from Fairfetch-enabled sites as MCP Tools and Resources. This is the
 "Official Legal Path" — AI agents that use this endpoint get
 cryptographically signed content with Usage Grants for legal indemnity.
 
@@ -26,7 +26,7 @@ from payments.mock_license_facilitator import MockLicenseProvider
 mcp = FastMCP(
     "Fairfetch",
     instructions=(
-        "Direct Pipeline to publisher content. Get verified, machine-ready "
+        "Direct Pipeline to content from Fairfetch-enabled sites. Get verified, machine-ready "
         "articles with cryptographic Usage Grants — the legal-safe alternative "
         "to web scraping."
     ),

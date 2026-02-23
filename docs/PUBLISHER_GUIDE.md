@@ -1,8 +1,8 @@
-# Publisher Onboarding Guide
+# Content Creator & Site Owner Guide
 
 **Get your website ready for AI agents — in plain language.**
 
-This guide is for **content owners** (publishers, blogs, news sites) who want to offer their content to AI companies through a **paid, legal pipeline** instead of being scraped for free. No coding experience? No problem. We’ll walk you through each step with examples and simple checks.
+This guide is for **anyone with a site that has content** — blogs, news sites, portfolios, forums, docs, community sites. If you want to **monetize AI traffic** and offer your content to AI companies through a **paid, legal pipeline** instead of being scraped for free, Fairfetch is for you. No coding experience? No problem. We’ll walk you through each step with examples and simple checks.
 
 ---
 
@@ -20,11 +20,11 @@ This guide is for **content owners** (publishers, blogs, news sites) who want to
 
 ---
 
-## What you get as a publisher
+## What you get as a content creator or site owner
 
 | Benefit | In simple terms |
 |--------|------------------|
-| **Revenue** | AI companies pay a small amount per article view (micro-payments in USDC). |
+| **Revenue** | AI companies pay a small amount per content view (micro-payments in USDC). Monetize AI traffic instead of giving it away. |
 | **Legal control** | You set the rules (e.g. “publisher terms”). Every access is recorded with a signed **Usage Grant** so there’s proof of legal use. |
 | **Visibility** | You can see how many bot visits were “steered” from raw scraping to your official API. |
 | **Efficiency** | Your server prepares content once; many AI agents use that same clean version instead of each one scraping and processing your site. |

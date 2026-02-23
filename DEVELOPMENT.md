@@ -95,12 +95,12 @@ the complete grant object.
 ### Verifying a Usage Grant Locally
 
 A Usage Grant is verified by checking the Ed25519 signature against the
-publisher's public key.
+content owner's public key.
 
 ```python
 from core.signatures import Ed25519Verifier
 
-# 1. Get the publisher's public key (from fairfetch://public-key resource or API)
+# 1. Get the content owner's public key (from fairfetch://public-key resource or API)
 public_key_b64 = "..."  # base64-encoded Ed25519 public key
 
 # 2. Reconstruct the signing payload from the grant fields
@@ -191,7 +191,7 @@ curl -s "http://localhost:8402/content/fetch?url=http://127.0.0.1/admin" \
 - **`FAIRFETCH_TEST_MODE=true`** (default): CORS allows all origins (`*`); wallet ledger pre-seeds `wallet_test_agent_alpha` and `wallet_test_agent_beta`; mock payment tokens accepted.
 - **`FAIRFETCH_TEST_MODE=false`**: CORS is restricted to `https://{FAIRFETCH_PUBLISHER_DOMAIN}`; no pre-seeded wallets; use real payment integration.
 
-Optional **`FAIRFETCH_PRICE_BY_ROUTE`** (JSON map of path prefix → price) enables variable pricing by content URL path. Prices must be numeric; path is normalized for matching; up to 256 entries. See [Publisher Guide](docs/PUBLISHER_GUIDE.md) and [README Configuration](README.md#-configuration).
+Optional **`FAIRFETCH_PRICE_BY_ROUTE`** (JSON map of path prefix → price) enables variable pricing by content URL path. Prices must be numeric; path is normalized for matching; up to 256 entries. See [Site owner guide](docs/PUBLISHER_GUIDE.md) and [README Configuration](README.md#-configuration).
 
 ## Architecture Decisions
 
@@ -208,7 +208,7 @@ possible realization of the standard.
 Copyright law is ambiguous for AI training. Usage Grants provide a
 deterministic, cryptographically verifiable proof that content was accessed
 through an authorized channel under explicit terms. This removes legal
-uncertainty for both publishers and AI companies.
+uncertainty for both content creators and AI companies.
 
 ### Why Ed25519?
 
@@ -220,5 +220,5 @@ both origin attestations and usage grants.
 
 Blocking crawlers breaks the web. Steering them with `Link` headers and
 `X-FairFetch-Preferred-Access` is a cooperative signal: "Here's a better
-way to get this content legally." Publishers can see the conversion rate
+way to get this content legally." Site owners can see the conversion rate
 in the `/health` endpoint's `scraper_interceptions` counter.

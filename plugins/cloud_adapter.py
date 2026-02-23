@@ -5,13 +5,13 @@ for the FairFetch cloud service. In the open-source version, only the Mock
 implementations are provided. The managed cloud service handles:
 
   - Real EIP-3009 (gasless USDC) payment verification and settlement
-  - Publisher-verified Ed25519 key management
+  - Content-owner-verified Ed25519 key management
   - Usage Grant persistence and audit trail
-  - Revenue distribution to publishers
+  - Revenue distribution to content creators
 
 To use the managed service:
   1. Sign up at https://clearinghouse.fairfetch.dev
-  2. Get your API key and publisher ID
+  2. Get your API key and content-owner ID
   3. Set FAIRFETCH_CLOUD_API_KEY and FAIRFETCH_PUBLISHER_ID env vars
   4. Set FAIRFETCH_TEST_MODE=false
 
@@ -71,7 +71,7 @@ class CloudFacilitator(BaseFacilitator):
 class CloudLicenseProvider(BaseLicenseProvider):
     """Production license provider backed by the FairFetch Clearinghouse.
 
-    Issues publisher-verified Usage Grants with persistent audit trail.
+    Issues content-owner-verified Usage Grants with persistent audit trail.
     This is a placeholder — the actual implementation is part of the
     FairFetch commercial cloud offering.
     """

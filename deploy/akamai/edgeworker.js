@@ -4,7 +4,7 @@
  * 1. Known crawlers requesting text/html → inject Link + steering headers
  * 2. AI agents with correct Accept → proxy to FairFetch API
  * 3. Unpaid AI requests → 402 Payment Required
- * 4. Logs scraper interceptions for publisher dashboards
+ * 4. Logs scraper interceptions for site owner dashboards
  */
 
 const AI_ACCEPT_TYPES = [

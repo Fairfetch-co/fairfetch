@@ -8,7 +8,7 @@ packages = ["core", "api", "mcp_server", "payments", "compliance", "interfaces",
 [project]
 name = "fairfetch"
 version = "0.2.0"
-description = "Green AI infrastructure for publishers — serve machine-ready content to AI agents with x402 payments, cryptographic Usage Grants, and EU AI Act compliance."
+description = "Green AI infrastructure for any site with content — serve machine-ready content to AI agents with x402 payments, cryptographic Usage Grants, and EU AI Act compliance. For content creators and site owners who want to monetize AI traffic."
 readme = "README.md"
 license = { text = "Apache-2.0" }
 requires-python = ">=3.11"

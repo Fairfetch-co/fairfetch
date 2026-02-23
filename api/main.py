@@ -34,9 +34,9 @@ def create_app() -> FastAPI:
     application = FastAPI(
         title="Fairfetch — AI-Aware Content Layer",
         description=(
-            "Green AI infrastructure for publishers. Serve machine-ready content "
-            "to AI agents with x402 payments, cryptographic Usage Grants for legal "
-            "indemnity, and EU AI Act 2026 compliance."
+            "Green AI infrastructure for content creators and site owners. "
+            "Serve machine-ready content to AI agents with x402 payments, "
+            "cryptographic Usage Grants for legal indemnity, and EU AI Act 2026 compliance."
         ),
         version="0.2.0",
         docs_url="/docs",

@@ -27,7 +27,7 @@ class PaymentNetwork(StrEnum):
 
 
 class PaymentRequirement(BaseModel):
-    """Describes what payment the publisher requires (returned in 402 body).
+    """Describes what payment the content owner requires (returned in 402 body).
 
     Pricing is usage-category-aware: the base price is multiplied by the
     category's tier multiplier (e.g. 1x for summary, 5x for training).
@@ -36,7 +36,7 @@ class PaymentRequirement(BaseModel):
     price: str = Field(description="Base price in smallest unit (e.g. '1000' for $0.001 USDC)")
     asset: str = Field(default="USDC", description="Payment asset symbol")
     network: PaymentNetwork = Field(default=PaymentNetwork.BASE)
-    pay_to: str = Field(description="Publisher wallet address (EVM)")
+    pay_to: str = Field(description="Content owner wallet address (EVM)")
     facilitator_url: str = Field(
         default="https://x402.org/facilitator",
         description="URL of the facilitator service",
