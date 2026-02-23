@@ -28,17 +28,17 @@ from core.signatures import Ed25519Verifier, SignatureBundle
 class UsageCategory(StrEnum):
     """Defines the permitted use of accessed content.
 
-    Categories are ordered by escalating compliance requirements and pricing:
-      - SUMMARY:   Display a short summary or snippet (lowest tier)
+    Categories are listed in order of increasing price (first = free/cheapest):
       - SEARCH_ENGINE_INDEXING: Search engine crawling for indexing (free when allowed by publisher)
+      - SUMMARY:   Display a short summary or snippet
       - RAG:       Retrieval-Augmented Generation / search grounding
       - RESEARCH:  Academic or internal research use
-      - TRAINING:  Model fine-tuning or pre-training (highest tier)
-      - COMMERCIAL: Redistribution or commercial derivative works
+      - TRAINING:  Model fine-tuning or pre-training
+      - COMMERCIAL: Redistribution or commercial derivative works (highest tier)
     """
 
-    SUMMARY = "summary"
     SEARCH_ENGINE_INDEXING = "search_engine_indexing"
+    SUMMARY = "summary"
     RAG = "rag"
     RESEARCH = "research"
     TRAINING = "training"
@@ -54,17 +54,17 @@ class ComplianceLevel(StrEnum):
 
 
 USAGE_CATEGORY_META: dict[UsageCategory, dict[str, object]] = {
-    UsageCategory.SUMMARY: {
-        "compliance_level": ComplianceLevel.STANDARD,
-        "price_multiplier": 1,
-        "requires_audit_trail": False,
-        "description": "Short summary or snippet display",
-    },
     UsageCategory.SEARCH_ENGINE_INDEXING: {
         "compliance_level": ComplianceLevel.STANDARD,
         "price_multiplier": 0,
         "requires_audit_trail": False,
         "description": "Search engine crawling for indexing (free when publisher allows)",
+    },
+    UsageCategory.SUMMARY: {
+        "compliance_level": ComplianceLevel.STANDARD,
+        "price_multiplier": 1,
+        "requires_audit_trail": False,
+        "description": "Short summary or snippet display",
     },
     UsageCategory.RAG: {
         "compliance_level": ComplianceLevel.STANDARD,
@@ -118,7 +118,7 @@ class UsageGrant(BaseModel):
     license_type: str = Field(default="publisher-terms")
     usage_category: str = Field(
         default=UsageCategory.SUMMARY,
-        description="Permitted use: summary, search_engine_indexing, rag, research, training, commercial",  # noqa: E501
+        description="Permitted use: search_engine_indexing, summary, rag, research, training, commercial",  # noqa: E501
     )
     granted_to: str = Field(default="", description="Payer wallet or agent identifier")
     granted_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())

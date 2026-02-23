@@ -113,7 +113,12 @@ async def fetch_content(
     url: Annotated[str, Query(description="URL of the page to fetch and convert")],
     usage: Annotated[
         str,
-        Query(description="Usage category: summary, rag, research, training, commercial"),
+        Query(
+            description=(
+                "Usage category: search_engine_indexing, summary, rag, "
+                "research, training, commercial"
+            )
+        ),
     ] = "",
     accept: Annotated[str, Header(alias="accept")] = "application/json",
 ) -> Response:
@@ -313,7 +318,12 @@ async def get_markdown(
     url: Annotated[str, Query(description="URL to convert to Markdown")],
     usage: Annotated[
         str,
-        Query(description="Usage category: summary, rag, research, training, commercial"),
+        Query(
+            description=(
+                "Usage category: search_engine_indexing, summary, rag, "
+                "research, training, commercial"
+            )
+        ),
     ] = "",
 ) -> PlainTextResponse:
     """Return clean Markdown extraction of a URL (Green AI)."""

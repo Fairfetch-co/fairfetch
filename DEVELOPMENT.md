@@ -126,7 +126,7 @@ print(f"Grant valid: {grant.verify()}")
 ```bash
 # Step 1: Request without payment -> 402 (includes available_tiers with all pricing)
 curl -i "http://localhost:8402/content/fetch?url=https://example.com"
-# Response: 402 with {"accepts": {...}, "available_tiers": {"summary": ..., "rag": ..., "training": ...}}
+# Response: 402 with {"accepts": {...}, "available_tiers": {"search_engine_indexing": ..., "summary": ..., "rag": ..., "training": ...}}
 
 # Step 2: Request with test payment -> 200 + receipt + grant (default usage: summary)
 curl -i -H "X-PAYMENT: test_paid_fairfetch" \

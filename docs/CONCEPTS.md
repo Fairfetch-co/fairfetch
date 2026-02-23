@@ -64,18 +64,18 @@ automatically (wallet).
 
 Not all content use is the same. Quoting a one-sentence summary in a chatbot is
 very different from feeding an entire article into model training. Fairfetch
-defines five levels:
+defines six usage categories, listed in order of increasing price:
 
 | Category | What It Means | Analogy |
 |----------|---------------|---------|
+| **Search engine indexing** | Let search engines (Google, Bing, etc.) crawl and index your content (free when publisher allows) | Letting a library catalog list your book |
 | **Summary** | Show a short snippet or headline | Reading the back cover of a book |
 | **RAG** | Use the content to answer a specific question (Retrieval-Augmented Generation) | Looking up a fact in a reference book |
 | **Research** | Internal analysis, academic research, trend analysis | Borrowing a book from a library |
 | **Training** | Feed the content into an AI model's training data | Photocopying a book to teach from |
 | **Commercial** | Redistribute, resell, or build a commercial product on top of the content | Reprinting a book under your own brand |
 
-Each level costs more and has stricter compliance requirements, because the
-impact on the publisher increases.
+Each level (after search engine indexing) costs more and has stricter compliance requirements, because the impact on the publisher increases.
 
 ### Usage Grant
 
@@ -84,7 +84,7 @@ A Usage Grant is a digitally signed receipt that proves:
 - **What** content was accessed (URL + fingerprint of the exact text)
 - **Who** accessed it (the payer's identity)
 - **When** it was accessed (timestamp)
-- **Why** — what usage category was declared (summary, training, etc.)
+- **Why** — what usage category was declared (search_engine_indexing, summary, training, etc.)
 - **Under what terms** (the publisher's license type)
 
 The signature is created by the publisher's server using a private key. Anyone
@@ -245,8 +245,8 @@ what it costs. Here's what each field means:
     "compliance_level": "standard"
   },
   "available_tiers": {
-    "summary":    { "price": "1000",  "compliance_level": "standard" },
     "search_engine_indexing": { "price": "0", "compliance_level": "standard" },
+    "summary":    { "price": "1000",  "compliance_level": "standard" },
     "rag":        { "price": "2000",  "compliance_level": "standard" },
     "research":   { "price": "3000",  "compliance_level": "elevated" },
     "training":   { "price": "5000",  "compliance_level": "strict" },

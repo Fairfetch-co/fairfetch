@@ -3,7 +3,7 @@
 Standardized header names:
   X-FairFetch-Origin-Signature  — Ed25519 sig of the content body
   X-FairFetch-License-ID        — Usage Grant compact identifier
-  X-FairFetch-Usage-Category    — Permitted usage tier (summary, rag, training, etc.)
+  X-FairFetch-Usage-Category    — Permitted usage tier (search_engine_indexing, summary, rag, etc.)
   X-Data-Origin-Verified        — EU AI Act origin attestation
   X-AI-License-Type             — Content license terms
 """

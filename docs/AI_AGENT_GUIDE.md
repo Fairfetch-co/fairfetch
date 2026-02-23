@@ -150,7 +150,7 @@ Restart Claude or Cursor. You can then ask: “Summarize the article at https://
 | `fairfetch://config` | Server config (version, model, public key, formats) |
 | `fairfetch://public-key` | Ed25519 public key for signature verification |
 
-The optional `usage` parameter sets the usage category (`summary`, `rag`, `research`, `training`, `commercial`) and thus pricing tier and compliance level on the grant.
+The optional `usage` parameter sets the usage category (`search_engine_indexing`, `summary`, `rag`, `research`, `training`, `commercial`) and thus pricing tier and compliance level on the grant.
 
 ---
 
@@ -179,8 +179,8 @@ curl -s "http://localhost:8402/content/fetch?url=https://example.com"
     "compliance_level": "standard"
   },
   "available_tiers": {
-    "summary":    { "price": "1000",  "compliance_level": "standard" },
     "search_engine_indexing": { "price": "0", "compliance_level": "standard" },
+    "summary":    { "price": "1000",  "compliance_level": "standard" },
     "rag":        { "price": "2000",  "compliance_level": "standard" },
     "research":   { "price": "3000",  "compliance_level": "elevated" },
     "training":   { "price": "5000",  "compliance_level": "strict" },

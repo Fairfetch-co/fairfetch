@@ -304,8 +304,8 @@ You get back a `402 Payment Required` response — this is not an error, it's a 
     "compliance_level": "standard"
   },
   "available_tiers": {
-    "summary":    { "price": "1000",  "compliance_level": "standard" },
     "search_engine_indexing": { "price": "0", "compliance_level": "standard" },
+    "summary":    { "price": "1000",  "compliance_level": "standard" },
     "rag":        { "price": "2000",  "compliance_level": "standard" },
     "research":   { "price": "3000",  "compliance_level": "elevated" },
     "training":   { "price": "5000",  "compliance_level": "strict" },
@@ -412,8 +412,8 @@ Not all content usage is equal. Fairfetch defines **usage categories** that cont
 
 | Category | Compliance | Price Multiplier | Use Case |
 |----------|-----------|-----------------|----------|
-| `summary` | Standard | 1x | Display a short summary or snippet |
 | `search_engine_indexing` | Standard | 0x (free) | Search engine crawling for indexing; free when publisher allows (see [config](#-configuration)) |
+| `summary` | Standard | 1x | Display a short summary or snippet |
 | `rag` | Standard | 2x | Retrieval-Augmented Generation / search grounding |
 | `research` | Elevated | 3x | Academic or internal research use |
 | `training` | Strict | 5x | Model fine-tuning or pre-training |

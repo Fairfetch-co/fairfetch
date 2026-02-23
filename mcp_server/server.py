@@ -53,8 +53,8 @@ async def get_site_summary(
 
     Args:
         url: The URL of the article or page to summarize.
-        usage: Usage category — summary, rag, research, training, or commercial.
-               Controls the compliance level and pricing tier.
+        usage: Usage category (search_engine_indexing, summary, rag, research, training, commercial)
+                Controls the compliance level and pricing tier.
 
     Returns:
         JSON with title, author, summary, origin signature, and usage grant.
@@ -141,8 +141,8 @@ async def get_verified_facts(
 
     Args:
         url: The URL of the content to verify.
-        usage: Usage category — summary, rag, research, training, or commercial.
-               Controls the compliance level and pricing tier.
+        usage: Usage category (search_engine_indexing, summary, rag, research, training, commercial)
+                Controls the compliance level and pricing tier.
 
     Returns:
         A JSON-LD knowledge packet with signature, lineage, and usage grant.
