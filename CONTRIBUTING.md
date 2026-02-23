@@ -3,6 +3,18 @@
 Thank you for your interest in contributing to Fairfetch. This document provides
 guidelines, instructions, and legal information for contributors.
 
+## Fork and Pull Request Model
+
+**We use a fork-and-PR model.** To contribute:
+
+1. **Fork** the repository on GitHub.
+2. **Create a branch** in your fork (e.g. `feature/your-feature-name`).
+3. **Submit a pull request** from your branch to the upstream `main` branch.
+
+Only **core maintainers** can merge code into the upstream repository. This keeps
+Fairfetch open and collaborative while maintaining clear control over what gets
+merged. All contributions go through review via pull requests.
+
 ## Contributor License Agreement (CLA)
 
 **By submitting a pull request or otherwise contributing code to this repository,
@@ -106,8 +118,10 @@ make dev-mcp         # MCP server manual testing via Inspector
 
 1. Ensure all tests pass
 2. Update documentation if adding new features
-3. Create a pull request with a clear description of the changes
+3. Create a pull request from your fork to upstream with a clear description of the changes
 4. Reference any related issues
+
+Only core maintainers merge pull requests. Your PR will be reviewed; you may be asked for changes before it is merged.
 
 ### PR Title Convention
 

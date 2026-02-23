@@ -1,0 +1,77 @@
+name: Bug Report
+description: File a bug report to help us improve Fairfetch (API, MCP, payments, compliance, or deployment).
+title: "[Bug]: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug report. Please fill out the sections below so we can reproduce and fix the issue.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Describe the bug. What did you expect to happen instead?
+      placeholder: |
+        e.g. Requesting /content/fetch with X-PAYMENT returns 402 instead of 200.
+        Expected: 200 with Markdown body.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Fairfetch version
+      description: Branch, tag, or version (e.g. main, 0.2.0).
+      placeholder: "main"
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Where does the bug occur?
+      options:
+        - API (content / wallet / health)
+        - MCP (Inspector, tools)
+        - Payments (x402 / wallet / 402 response)
+        - Compliance (Usage Grants, headers, opt-out)
+        - Deployment (edge worker, Cloudflare / CloudFront / Nginx)
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: endpoint
+    attributes:
+      label: Endpoint (if API)
+      description: e.g. /content/fetch, /wallet/register, /health. Leave blank if not applicable.
+      placeholder: "/content/fetch"
+  - type: dropdown
+    id: test-mode
+    attributes:
+      label: Test mode?
+      description: FAIRFETCH_TEST_MODE when the bug occurred (affects CORS, wallets, payment tokens).
+      options:
+        - "true (default)"
+        - "false"
+        - Not sure
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: How can we reproduce this on our side?
+      placeholder: |
+        1. make dev
+        2. curl -H "X-PAYMENT: test_paid_fairfetch" "http://localhost:8402/content/fetch?url=https://example.com"
+        3. ...
+  - type: input
+    id: python-version
+    attributes:
+      label: Python version
+      description: e.g. 3.11.6 (from python --version).
+      placeholder: "3.11"
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or error output
+      description: Paste relevant server logs, curl output, or client errors. Redact secrets.
+      render: shell
