@@ -23,6 +23,7 @@ from fastapi import Request, Response
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 
+from core.search_engine import is_allowed_search_engine
 from interfaces.facilitator import BaseFacilitator, PaymentRequirement
 from interfaces.license_provider import BaseLicenseProvider, UsageCategory
 from payments.wallet_ledger import WalletLedger
@@ -52,6 +53,8 @@ class X402Middleware(BaseHTTPMiddleware):
         get_requirement: Callable[[str], PaymentRequirement],
         license_provider: BaseLicenseProvider | None = None,
         wallet_ledger: WalletLedger | None = None,
+        search_engines_allowed: list[str] | None = None,
+        search_engines_blocked: list[str] | None = None,
         paid_path_prefixes: list[str] | None = None,
         exempt_paths: list[str] | None = None,
     ) -> None:
@@ -60,6 +63,8 @@ class X402Middleware(BaseHTTPMiddleware):
         self._get_requirement = get_requirement
         self._license_provider = license_provider
         self._wallet_ledger = wallet_ledger
+        self._search_engines_allowed = search_engines_allowed or []
+        self._search_engines_blocked = search_engines_blocked or []
         self._paid_prefixes = paid_path_prefixes or ["/content/"]
         self._exempt = set(exempt_paths or ["/health", "/openapi.json", "/docs", "/redoc"])
 
@@ -80,6 +85,30 @@ class X402Middleware(BaseHTTPMiddleware):
                 pass
         return default_requirement.usage_category
 
+    def _402_body_with_price(
+        self,
+        req_for_category: PaymentRequirement,
+        usage_cat: str,
+        effective_price: int,
+        **extra: object,
+    ) -> dict[str, object]:
+        """Build 402 body; override displayed price when search_engine_indexing and not free."""
+        body = {**req_for_category.to_402_body(), **extra}
+        if usage_cat == UsageCategory.SEARCH_ENGINE_INDEXING.value and effective_price != 0:
+            accepts = body.get("accepts")
+            if isinstance(accepts, dict):
+                body["accepts"] = {**accepts, "price": str(effective_price)}
+            if "available_tiers" in body and isinstance(body["available_tiers"], dict):
+                tiers = dict(body["available_tiers"])
+                if "search_engine_indexing" in tiers and isinstance(
+                    tiers["search_engine_indexing"], dict
+                ):
+                    tier = dict(tiers["search_engine_indexing"])
+                    tier["price"] = str(effective_price)
+                    tiers["search_engine_indexing"] = tier
+                    body["available_tiers"] = tiers
+        return body
+
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         if not self._is_paid_route(request.url.path):
             return await call_next(request)
@@ -90,6 +119,30 @@ class X402Middleware(BaseHTTPMiddleware):
         req_for_category = requirement.model_copy(update={"usage_category": usage_cat})
         request.state.payment_requirement = req_for_category
         effective_price = int(req_for_category.effective_price())
+
+        # --- Search engine indexing: free for allowed crawlers, 1x base for others ---
+        if usage_cat == UsageCategory.SEARCH_ENGINE_INDEXING.value:
+            user_agent = request.headers.get("user-agent", "") or ""
+            if is_allowed_search_engine(
+                user_agent,
+                self._search_engines_allowed,
+                self._search_engines_blocked,
+            ):
+                effective_price = 0
+            else:
+                effective_price = int(requirement.price)
+
+        # --- Free pass: no payment required (e.g. allowed search engine) ---
+        if effective_price == 0:
+            payer = request.headers.get("user-agent", "search_engine") or "search_engine"
+            request.state.payment_result = None
+            request.state.payment_payer = payer
+            request.state.usage_category = usage_cat
+            response = await call_next(request)
+            response.headers["X-FairFetch-Payment-Method"] = "free"
+            response.headers[RECEIPT_HEADER] = "free"
+            await self._issue_grant(request, response, usage_cat, payer)
+            return response
 
         wallet_token = request.headers.get(WALLET_TOKEN_HEADER)
         payment_header = request.headers.get(PAYMENT_HEADER)
@@ -140,18 +193,20 @@ class X402Middleware(BaseHTTPMiddleware):
             )
             return JSONResponse(
                 status_code=402,
-                content={
-                    **req_for_category.to_402_body(),
-                    "wallet_error": "insufficient_balance",
-                    "wallet_balance": balance,
-                    "amount_required": effective_price,
-                    "shortfall": effective_price - balance,
-                },
+                content=self._402_body_with_price(
+                    req_for_category,
+                    usage_cat,
+                    effective_price,
+                    wallet_error="insufficient_balance",
+                    wallet_balance=balance,
+                    amount_required=effective_price,
+                    shortfall=effective_price - balance,
+                ),
             )
 
         # --- Standard path: x402 one-time payment ---
         if not payment_header:
-            body = req_for_category.to_402_body()
+            body = self._402_body_with_price(req_for_category, usage_cat, effective_price)
             body["hint"] = (
                 "For faster access without 402 round-trips, use a pre-funded wallet. "
                 "Send X-WALLET-TOKEN header instead of X-PAYMENT. "
@@ -164,16 +219,24 @@ class X402Middleware(BaseHTTPMiddleware):
                 headers={"X-Payment-Required": "true"},
             )
 
-        result = await self._facilitator.settle(payment_header, req_for_category)
+        # When search_engine_indexing but not free, settle at base price (1x)
+        req_for_settlement = req_for_category
+        if usage_cat == UsageCategory.SEARCH_ENGINE_INDEXING.value and effective_price != 0:
+            req_for_settlement = requirement.model_copy(
+                update={"usage_category": UsageCategory.SUMMARY.value}
+            )
+        result = await self._facilitator.settle(payment_header, req_for_settlement)
 
         if not result.valid:
             logger.warning("Payment rejected for %s: %s", request.url.path, result.error)
             return JSONResponse(
                 status_code=402,
-                content={
-                    **req_for_category.to_402_body(),
-                    "verification_error": result.error,
-                },
+                content=self._402_body_with_price(
+                    req_for_category,
+                    usage_cat,
+                    effective_price,
+                    verification_error=result.error,
+                ),
             )
 
         logger.info(

@@ -246,6 +246,7 @@ what it costs. Here's what each field means:
   },
   "available_tiers": {
     "summary":    { "price": "1000",  "compliance_level": "standard" },
+    "search_engine_indexing": { "price": "0", "compliance_level": "standard" },
     "rag":        { "price": "2000",  "compliance_level": "standard" },
     "research":   { "price": "3000",  "compliance_level": "elevated" },
     "training":   { "price": "5000",  "compliance_level": "strict" },

@@ -91,6 +91,8 @@ def create_app() -> FastAPI:
         get_requirement=get_requirement,
         license_provider=license_provider,
         wallet_ledger=wallet_ledger,
+        search_engines_allowed=config.search_engines_allowed,
+        search_engines_blocked=config.search_engines_blocked,
         paid_path_prefixes=["/content/"],
         exempt_paths=[
             "/health",

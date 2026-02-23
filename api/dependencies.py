@@ -19,6 +19,20 @@ from interfaces.summarizer import BaseSummarizer
 from payments.mock_facilitator import MockFacilitator
 from payments.mock_license_facilitator import MockLicenseFacilitator, MockLicenseProvider
 
+# Default User-Agent substrings for search engines allowed free indexing (publisher can override)
+_DEFAULT_SEARCH_ENGINES_ALLOWED = (
+    "Googlebot",
+    "Bingbot",
+    "DuckDuckBot",
+    "Slurp",  # Yahoo
+    "Baiduspider",
+    "YandexBot",
+    "Sogou",
+    "Exabot",
+    "facebookexternalhit",
+    "ia_archiver",  # Alexa
+)
+
 
 class FairFetchConfig(BaseModel):
     """Centralized runtime configuration — loaded entirely from env vars.
@@ -47,6 +61,15 @@ class FairFetchConfig(BaseModel):
     enable_usage_grants: bool = Field(default=True)
     enable_preferred_access: bool = Field(default=True)
 
+    search_engines_allowed: list[str] = Field(
+        default_factory=lambda: list(_DEFAULT_SEARCH_ENGINES_ALLOWED),
+        description="User-Agent substrings for search engines allowed free indexing",
+    )
+    search_engines_blocked: list[str] = Field(
+        default_factory=list,
+        description="User-Agent substrings for search engines never given free indexing",
+    )
+
     @classmethod
     def from_env(cls) -> FairFetchConfig:
         return cls(
@@ -72,6 +95,10 @@ class FairFetchConfig(BaseModel):
             enable_preferred_access=(
                 os.getenv("FAIRFETCH_PREFERRED_ACCESS", "true").lower() == "true"
             ),
+            search_engines_allowed=_parse_list_env(
+                "FAIRFETCH_SEARCH_ENGINES_ALLOWED", _DEFAULT_SEARCH_ENGINES_ALLOWED
+            ),
+            search_engines_blocked=_parse_list_env("FAIRFETCH_SEARCH_ENGINES_BLOCKED", ()),
         )
 
 
@@ -111,6 +138,17 @@ _MAX_PRICE_BY_ROUTE_ENTRIES = 256
 def _is_valid_price_string(s: str) -> bool:
     """True if s is a non-empty string of digits (safe for int())."""
     return isinstance(s, str) and len(s) <= 20 and s.isdigit()
+
+
+def _parse_list_env(
+    key: str,
+    default: tuple[str, ...] | list[str],
+) -> list[str]:
+    """Parse comma-separated env var into list of stripped strings; use default if unset."""
+    raw = os.getenv(key, "").strip()
+    if not raw:
+        return list(default)
+    return [s.strip() for s in raw.split(",") if s.strip()]
 
 
 def _parse_price_by_route(raw: str) -> dict[str, str]:

@@ -163,6 +163,8 @@ LITELLM_MODEL=gpt-4o-mini
 | `FAIRFETCH_PUBLISHER_DOMAIN` | Your website’s domain (no `https://`) | `newstoday.com` |
 | `FAIRFETCH_CONTENT_PRICE` | Default price per request in smallest USDC unit (1000 ≈ $0.001). Used when no route rule matches. | `1000` |
 | `FAIRFETCH_PRICE_BY_ROUTE` | *(Optional)* JSON map of **path prefix → price** so different sections have different prices. Longest matching path wins. E.g. `{"": "1000", "/business": "2000", "/sports": "500"}` makes `/business` cost 2000, `/sports` 500, and everything else 1000. | (omit for one price site-wide) |
+| `FAIRFETCH_SEARCH_ENGINES_ALLOWED` | *(Optional)* Comma-separated User-Agent substrings for search engines allowed **free** indexing (e.g. `Googlebot,Bingbot,DuckDuckBot`). Default includes Google, Bing, DuckDuckGo, Yahoo, Baidu, Yandex, Sogou, Exabot, and others. | (omit to use default) |
+| `FAIRFETCH_SEARCH_ENGINES_BLOCKED` | *(Optional)* Comma-separated User-Agent substrings never given free indexing (overrides allowed list). | (omit for none) |
 | `FAIRFETCH_LICENSE_TYPE` | Legal terms you offer: `publisher-terms`, `commercial`, or `research-only` | `publisher-terms` |
 | `FAIRFETCH_SIGNING_KEY` | Leave empty at first; we’ll generate a key next. | (empty) |
 | `LITELLM_MODEL` | Model used to generate summaries (needs an API key in production) | `gpt-4o-mini` |
@@ -181,6 +183,9 @@ FAIRFETCH_PRICE_BY_ROUTE='{"": "1000", "/business": "2000", "/sports": "500"}'
 Here, `/business` (and `/business/...`) is 2000, `/sports` is 500, and all other paths use the default 1000. Omit `FAIRFETCH_PRICE_BY_ROUTE` to use a single price for the whole site.
 
 **Behavior and limits:** Prices must be numeric (digits only); non-numeric values are ignored. The content URL path is normalized (percent-encoding decoded, `.` and `..` segments collapsed) so route matching cannot be bypassed. At most 256 route entries are used; extra entries are ignored.
+
+**Search engine indexing (free for allowed crawlers)**  
+The usage category `search_engine_indexing` lets search engines (Google, Bing, DuckDuckGo, etc.) index your site for **free** when you allow them. Set `FAIRFETCH_SEARCH_ENGINES_ALLOWED` to a comma-separated list of User-Agent substrings (e.g. `Googlebot,Bingbot,DuckDuckBot`). The default allowlist includes Googlebot, Bingbot, DuckDuckBot, Slurp, Baiduspider, YandexBot, Sogou, Exabot, and a few others. Set `FAIRFETCH_SEARCH_ENGINES_BLOCKED` to block specific crawlers from free access (takes precedence over the allowlist). Crawlers not on the allowlist that request `usage=search_engine_indexing` pay the base price (1x).
 
 ### 3.2 Generate a signing key (recommended for production)
 

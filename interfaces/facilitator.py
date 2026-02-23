@@ -44,7 +44,7 @@ class PaymentRequirement(BaseModel):
     description: str = Field(default="Content access fee")
     usage_category: str = Field(
         default=UsageCategory.SUMMARY,
-        description="Intended usage: summary, rag, research, training, commercial",
+        description="Intended usage: summary, search_engine_indexing, rag, research, training, commercial",  # noqa: E501
     )
     extra: dict[str, str] = Field(default_factory=dict)
 

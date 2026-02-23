@@ -30,6 +30,7 @@ class UsageCategory(StrEnum):
 
     Categories are ordered by escalating compliance requirements and pricing:
       - SUMMARY:   Display a short summary or snippet (lowest tier)
+      - SEARCH_ENGINE_INDEXING: Search engine crawling for indexing (free when allowed by publisher)
       - RAG:       Retrieval-Augmented Generation / search grounding
       - RESEARCH:  Academic or internal research use
       - TRAINING:  Model fine-tuning or pre-training (highest tier)
@@ -37,6 +38,7 @@ class UsageCategory(StrEnum):
     """
 
     SUMMARY = "summary"
+    SEARCH_ENGINE_INDEXING = "search_engine_indexing"
     RAG = "rag"
     RESEARCH = "research"
     TRAINING = "training"
@@ -57,6 +59,12 @@ USAGE_CATEGORY_META: dict[UsageCategory, dict[str, object]] = {
         "price_multiplier": 1,
         "requires_audit_trail": False,
         "description": "Short summary or snippet display",
+    },
+    UsageCategory.SEARCH_ENGINE_INDEXING: {
+        "compliance_level": ComplianceLevel.STANDARD,
+        "price_multiplier": 0,
+        "requires_audit_trail": False,
+        "description": "Search engine crawling for indexing (free when publisher allows)",
     },
     UsageCategory.RAG: {
         "compliance_level": ComplianceLevel.STANDARD,
@@ -110,7 +118,7 @@ class UsageGrant(BaseModel):
     license_type: str = Field(default="publisher-terms")
     usage_category: str = Field(
         default=UsageCategory.SUMMARY,
-        description="Permitted use: summary, rag, research, training, commercial",
+        description="Permitted use: summary, search_engine_indexing, rag, research, training, commercial",  # noqa: E501
     )
     granted_to: str = Field(default="", description="Payer wallet or agent identifier")
     granted_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())

@@ -305,6 +305,7 @@ You get back a `402 Payment Required` response — this is not an error, it's a 
   },
   "available_tiers": {
     "summary":    { "price": "1000",  "compliance_level": "standard" },
+    "search_engine_indexing": { "price": "0", "compliance_level": "standard" },
     "rag":        { "price": "2000",  "compliance_level": "standard" },
     "research":   { "price": "3000",  "compliance_level": "elevated" },
     "training":   { "price": "5000",  "compliance_level": "strict" },
@@ -412,6 +413,7 @@ Not all content usage is equal. Fairfetch defines **usage categories** that cont
 | Category | Compliance | Price Multiplier | Use Case |
 |----------|-----------|-----------------|----------|
 | `summary` | Standard | 1x | Display a short summary or snippet |
+| `search_engine_indexing` | Standard | 0x (free) | Search engine crawling for indexing; free when publisher allows (see [config](#-configuration)) |
 | `rag` | Standard | 2x | Retrieval-Augmented Generation / search grounding |
 | `research` | Elevated | 3x | Academic or internal research use |
 | `training` | Strict | 5x | Model fine-tuning or pre-training |
@@ -689,6 +691,8 @@ fairfetch/
 | `FAIRFETCH_SIGNING_KEY` | *(generated)* | Ed25519 private key (b64) |
 | `FAIRFETCH_LICENSE_TYPE` | `publisher-terms` | Default license |
 | `FAIRFETCH_DEFAULT_USAGE_CATEGORY` | `summary` | Default usage tier for pricing |
+| `FAIRFETCH_SEARCH_ENGINES_ALLOWED` | *(built-in list)* | Comma-separated User-Agent substrings for search engines allowed **free** indexing (e.g. Googlebot, Bingbot, DuckDuckBot). Overrides default. |
+| `FAIRFETCH_SEARCH_ENGINES_BLOCKED` | *(empty)* | Comma-separated User-Agent substrings never given free indexing (takes precedence over allowed). |
 | `FAIRFETCH_ENABLE_GRANTS` | `true` | Issue Usage Grants |
 | `FAIRFETCH_PREFERRED_ACCESS` | `true` | Inject bot-steering headers |
 | `LITELLM_MODEL` | `gpt-4o-mini` | LLM for summarization |
