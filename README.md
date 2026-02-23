@@ -697,6 +697,7 @@ fairfetch/
 ## 🔒 Security
 
 - **URL validation:** The `url` parameter is validated before any outbound request. Private IPs (e.g. `127.0.0.1`, `10.x`, `192.168.x`), cloud metadata endpoints (e.g. `169.254.169.254`), and non-HTTP(S) schemes are rejected with `400` and `error: "url_blocked"`. This prevents SSRF (server-side request forgery).
+- **Route-based pricing:** The content URL path used for price lookup is normalized (percent-encoding decoded, `.` and `..` segments collapsed) so clients cannot bypass route matching to get a different price. Only numeric prices are accepted; invalid route or default prices fall back safely.
 - **Test mode:** With `FAIRFETCH_TEST_MODE=false`, CORS allows only `https://{FAIRFETCH_PUBLISHER_DOMAIN}` and the ledger does not pre-seed test wallets. Use test mode only for local development.
 - **Error responses:** Upstream fetch and summarization errors return generic messages to clients; details are logged server-side only.
 

@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import os
 from functools import lru_cache
-from urllib.parse import urlparse
+from urllib.parse import unquote, urlparse
 
 from pydantic import BaseModel, Field
 
@@ -102,15 +102,33 @@ def build_license_facilitator(
     return MockLicenseFacilitator(signer)
 
 
+# Max path length for route matching to avoid DoS from huge URLs
+_MAX_PATH_LENGTH = 2048
+# Max route rules to avoid DoS from huge FAIRFETCH_PRICE_BY_ROUTE
+_MAX_PRICE_BY_ROUTE_ENTRIES = 256
+
+
+def _is_valid_price_string(s: str) -> bool:
+    """True if s is a non-empty string of digits (safe for int())."""
+    return isinstance(s, str) and len(s) <= 20 and s.isdigit()
+
+
 def _parse_price_by_route(raw: str) -> dict[str, str]:
-    """Parse FAIRFETCH_PRICE_BY_ROUTE JSON (path prefix -> price)."""
+    """Parse FAIRFETCH_PRICE_BY_ROUTE JSON (path prefix -> price). Only numeric prices kept."""
     if not raw or not raw.strip():
         return {}
     try:
         data = json.loads(raw)
         if not isinstance(data, dict):
             return {}
-        return {str(k): str(v) for k, v in data.items()}
+        out: dict[str, str] = {}
+        for k, v in data.items():
+            if len(out) >= _MAX_PRICE_BY_ROUTE_ENTRIES:
+                break
+            vs = str(v)
+            if _is_valid_price_string(vs):
+                out[str(k)] = vs
+        return out
     except (json.JSONDecodeError, TypeError):
         return {}
 
@@ -120,33 +138,68 @@ def resolve_content_price(config: FairFetchConfig, content_url: str) -> str:
 
     The content URL path (e.g. /business, /sports) is matched against
     config.price_by_route; longest matching prefix wins. If no rules or no
-    match, returns config.content_price.
+    match, returns config.content_price. Path is normalized to prevent
+    bypass via encoding or traversal.
     """
     if not config.price_by_route:
-        return config.content_price
+        return config.content_price if _is_valid_price_string(config.content_price) else "1000"
     path = _path_from_content_url(content_url)
     # Longest matching prefix first
     candidates = sorted(config.price_by_route.keys(), key=len, reverse=True)
     for prefix in candidates:
         if path == prefix or path.startswith(prefix + "/"):
-            return config.price_by_route[prefix]
+            price = config.price_by_route[prefix]
+            if _is_valid_price_string(price):
+                return price
+            break
     # Explicit default key "" if present
     if "" in config.price_by_route:
-        return config.price_by_route[""]
-    return config.content_price
+        p = config.price_by_route[""]
+        if _is_valid_price_string(p):
+            return p
+    # Fallback: ensure we never return a non-numeric price (misconfig)
+    return config.content_price if _is_valid_price_string(config.content_price) else "1000"
+
+
+def _normalize_path(path: str) -> str:
+    """Decode percent-encoding and collapse . / .. segments to prevent price bypass."""
+    decoded = unquote(path)
+    if len(decoded) > _MAX_PATH_LENGTH:
+        decoded = decoded[:_MAX_PATH_LENGTH]
+    parts = decoded.split("/")
+    out: list[str] = []
+    for part in parts:
+        if part == ".":
+            continue
+        if part == "":
+            if not out:
+                out.append("")
+            continue
+        if part == "..":
+            if out and out[-1] != "":
+                out.pop()
+            continue
+        out.append(part)
+    joined = "/".join(out) if out else "/"
+    return joined if joined.startswith("/") else "/" + joined
 
 
 def _path_from_content_url(content_url: str) -> str:
-    """Extract path for route matching. Handles full URLs and bare paths."""
+    """Extract and normalize path for route matching. Handles full URLs and bare paths.
+    Decodes percent-encoding before parsing so %2F cannot be used to bypass route match.
+    """
     s = (content_url or "").strip()
     if not s:
         return "/"
     if "://" in s:
+        # Decode so path is consistent (e.g. %2F -> /) and cannot be used to bypass
+        s = unquote(s)
         parsed = urlparse(s)
         path = parsed.path or "/"
     else:
         path = s if s.startswith("/") else "/" + s
-    return path if path else "/"
+    path = path or "/"
+    return _normalize_path(path)
 
 
 def build_payment_requirement(

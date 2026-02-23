@@ -180,6 +180,8 @@ FAIRFETCH_PRICE_BY_ROUTE='{"": "1000", "/business": "2000", "/sports": "500"}'
 
 Here, `/business` (and `/business/...`) is 2000, `/sports` is 500, and all other paths use the default 1000. Omit `FAIRFETCH_PRICE_BY_ROUTE` to use a single price for the whole site.
 
+**Behavior and limits:** Prices must be numeric (digits only); non-numeric values are ignored. The content URL path is normalized (percent-encoding decoded, `.` and `..` segments collapsed) so route matching cannot be bypassed. At most 256 route entries are used; extra entries are ignored.
+
 ### 3.2 Generate a signing key (recommended for production)
 
 This key lets AI agents (and you) verify that content really came from your server.
