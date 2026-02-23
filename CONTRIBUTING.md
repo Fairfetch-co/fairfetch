@@ -37,7 +37,7 @@ This CLA is necessary to maintain the Open Core model: the open-source standard
 remains freely available while enabling a sustainable commercial offering that
 funds continued development.
 
-If you have questions about the CLA, please open an issue or email legal@fairfetch.dev.
+If you have questions about the CLA, please open an issue or email legal@fairfetch.co.
 
 ## Getting Started
 

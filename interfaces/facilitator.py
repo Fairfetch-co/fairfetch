@@ -91,7 +91,7 @@ class PaymentRequirement(BaseModel):
             "message": (
                 "This content requires micro-payment. Include an X-PAYMENT header "
                 "with a valid payment proof. Specify usage via X-USAGE-CATEGORY. "
-                "See https://fairfetch.dev/docs/x402"
+                "See https://fairfetch.co/docs/x402"
             ),
         }
 

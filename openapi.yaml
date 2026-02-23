@@ -29,7 +29,7 @@ info:
 servers:
   - url: http://localhost:8402
     description: Local development server
-  - url: https://api.fairfetch.dev
+  - url: https://api.fairfetch.co
     description: Production API
 
 paths:

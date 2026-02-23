@@ -42,7 +42,7 @@ class ContentConverter:
             follow_redirects=True,
         ) as client:
             resp = await client.get(
-                url, headers={"User-Agent": "Fairfetch/0.1 (+https://fairfetch.dev)"}
+                url, headers={"User-Agent": "Fairfetch/0.1 (+https://fairfetch.co)"}
             )
             resp.raise_for_status()
             return await self.from_html(resp.text, url=url)

@@ -10,7 +10,7 @@ implementations are provided. The managed cloud service handles:
   - Revenue distribution to content creators
 
 To use the managed service:
-  1. Sign up at https://clearinghouse.fairfetch.dev
+  1. Sign up at https://fairfetch.co
   2. Get your API key and content-owner ID
   3. Set FAIRFETCH_CLOUD_API_KEY and FAIRFETCH_PUBLISHER_ID env vars
   4. Set FAIRFETCH_TEST_MODE=false
@@ -43,7 +43,7 @@ class CloudFacilitator(BaseFacilitator):
         *,
         api_key: str = "",
         publisher_id: str = "",
-        base_url: str = "https://clearinghouse.fairfetch.dev/api/v1",
+        base_url: str = "https://fairfetch.co/api/v1",
     ) -> None:
         self._api_key = api_key or os.getenv("FAIRFETCH_CLOUD_API_KEY", "")
         self._publisher_id = publisher_id or os.getenv("FAIRFETCH_PUBLISHER_ID", "")
@@ -54,7 +54,7 @@ class CloudFacilitator(BaseFacilitator):
     ) -> FacilitatorResult:
         raise NotImplementedError(
             "CloudFacilitator requires a FairFetch Cloud subscription. "
-            "See https://clearinghouse.fairfetch.dev for details. "
+            "See https://fairfetch.co for details. "
             "Use MockFacilitator for local development."
         )
 
@@ -63,7 +63,7 @@ class CloudFacilitator(BaseFacilitator):
     ) -> FacilitatorResult:
         raise NotImplementedError(
             "CloudFacilitator requires a FairFetch Cloud subscription. "
-            "See https://clearinghouse.fairfetch.dev for details. "
+            "See https://fairfetch.co for details. "
             "Use MockFacilitator for local development."
         )
 
@@ -81,7 +81,7 @@ class CloudLicenseProvider(BaseLicenseProvider):
         *,
         api_key: str = "",
         publisher_id: str = "",
-        base_url: str = "https://clearinghouse.fairfetch.dev/api/v1",
+        base_url: str = "https://fairfetch.co/api/v1",
     ) -> None:
         self._api_key = api_key or os.getenv("FAIRFETCH_CLOUD_API_KEY", "")
         self._publisher_id = publisher_id or os.getenv("FAIRFETCH_PUBLISHER_ID", "")
@@ -98,7 +98,7 @@ class CloudLicenseProvider(BaseLicenseProvider):
     ) -> UsageGrant:
         raise NotImplementedError(
             "CloudLicenseProvider requires a FairFetch Cloud subscription. "
-            "See https://clearinghouse.fairfetch.dev for details. "
+            "See https://fairfetch.co for details. "
             "Use MockLicenseProvider for local development."
         )
 

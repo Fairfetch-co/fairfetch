@@ -230,7 +230,7 @@ Create a file named **llms.txt** with content like this. Replace the placeholder
 
 ```text
 # llms.txt — AI access policy for newstoday.com
-# See https://fairfetch.dev/llms-txt
+# See https://fairfetch.co/llms-txt
 
 User-agent: *
 Fairfetch-API: https://api.newstoday.com

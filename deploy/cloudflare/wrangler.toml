@@ -3,7 +3,7 @@ main = "worker.ts"
 compatibility_date = "2025-12-01"
 
 [vars]
-FAIRFETCH_API_ORIGIN = "https://api.fairfetch.dev"
+FAIRFETCH_API_ORIGIN = "https://api.fairfetch.co"
 FAIRFETCH_LLMS_TXT = "/.well-known/llms.txt"
 FAIRFETCH_MCP_ENDPOINT = "/mcp"
 
