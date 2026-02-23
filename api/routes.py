@@ -191,6 +191,7 @@ async def fetch_content(
             license_id=grant_header,
         )
         _attach_preferred_access(md_response, request)
+        md_response.headers["Vary"] = "Accept"
         return md_response
 
     try:
@@ -238,6 +239,7 @@ async def fetch_content(
         license_id=grant_header,
     )
     _attach_preferred_access(json_response, request)
+    json_response.headers["Vary"] = "Accept"
     return json_response
 
 

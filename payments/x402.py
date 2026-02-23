@@ -36,6 +36,9 @@ USAGE_CATEGORY_HEADER = "X-USAGE-CATEGORY"
 RECEIPT_HEADER = "X-PAYMENT-RECEIPT"
 LICENSE_ID_HEADER = "X-FairFetch-License-ID"
 
+# RFC 9110: 402 responses must not be stored by caches (payment state is per-request).
+HTTP_402_HEADERS = {"Cache-Control": "no-store", "X-Payment-Required": "true"}
+
 
 class X402Middleware(BaseHTTPMiddleware):
     """Intercepts requests to paid routes and enforces payment.
@@ -202,6 +205,7 @@ class X402Middleware(BaseHTTPMiddleware):
                     amount_required=effective_price,
                     shortfall=effective_price - balance,
                 ),
+                headers=dict(HTTP_402_HEADERS),
             )
 
         # --- Standard path: x402 one-time payment ---
@@ -216,7 +220,7 @@ class X402Middleware(BaseHTTPMiddleware):
             return JSONResponse(
                 status_code=402,
                 content=body,
-                headers={"X-Payment-Required": "true"},
+                headers=dict(HTTP_402_HEADERS),
             )
 
         # When search_engine_indexing but not free, settle at base price (1x)
@@ -237,6 +241,7 @@ class X402Middleware(BaseHTTPMiddleware):
                     effective_price,
                     verification_error=result.error,
                 ),
+                headers=dict(HTTP_402_HEADERS),
             )
 
         logger.info(

@@ -62,7 +62,7 @@ class TestPublisherFlow:
         assert "X-PAYMENT-RECEIPT" in resp.headers
         assert resp.headers["X-PAYMENT-RECEIPT"].startswith("0x")
 
-        assert "X-Fairfetch-Version" in resp.headers
+        assert "X-FairFetch-Version" in resp.headers
 
     async def test_scraper_interception_count_increments(self, client: AsyncClient):
         """Publisher metric: scraper interception count goes up when bots are steered."""

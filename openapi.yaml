@@ -6,8 +6,9 @@ info:
     MCP protocol support, and EU AI Act 2026 compliance.
 
     ## Payment Flow (x402)
+    Uses HTTP status 402 Payment Required per RFC 9110 (HTTP Semantics).
     1. Request content without `X-PAYMENT` header → receive `402 Payment Required`
-    2. Response body contains `accepts` object with price, asset, network, and wallet (price may vary by content URL path when publisher uses route-based pricing)
+    2. Response body contains `accepts` object with price, asset, network, and wallet (price may vary by content URL path when publisher uses route-based pricing). Responses include `Cache-Control: no-store` and must not be cached.
     3. Obtain payment proof via the facilitator
     4. Retry with `X-PAYMENT: <proof>` header → receive content
 
@@ -17,7 +18,7 @@ info:
     - `application/ld+json` — JSON-LD article representation
     - `text/markdown` — Clean markdown extraction
     - `application/json` — Standard JSON response
-  version: 0.1.0
+  version: 0.2.0
   license:
     name: Apache 2.0
     url: https://www.apache.org/licenses/LICENSE-2.0
@@ -52,8 +53,13 @@ paths:
         - $ref: '#/components/parameters/PaymentHeader'
       responses:
         '200':
-          description: Content successfully retrieved and processed
+          description: Content successfully retrieved and processed. Response varies by Accept (Vary: Accept).
           headers:
+            Vary:
+              description: Indicates content negotiation by Accept header (RFC 9110)
+              schema:
+                type: string
+                example: Accept
             X-Data-Origin-Verified:
               $ref: '#/components/headers/X-Data-Origin-Verified'
             X-AI-License-Type:
@@ -84,7 +90,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/UrlBlocked'
         '402':
-          description: Payment required — include X-PAYMENT or X-WALLET-TOKEN header
+          description: Payment required (RFC 9110). Include X-PAYMENT or X-WALLET-TOKEN. Response includes Cache-Control no-store.
           content:
             application/json:
               schema:
@@ -187,7 +193,7 @@ paths:
                     example: fairfetch
                   version:
                     type: string
-                    example: 0.1.0
+                    example: 0.2.0
 
   /compliance/optout:
     get:

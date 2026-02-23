@@ -601,7 +601,7 @@ Every successful response includes these headers. Think of them as a receipt and
 | `X-PAYMENT-RECEIPT` | Proof that payment was settled. For x402: a transaction hash. For wallets: a ledger transaction ID (`ff_...`). | `0x6d8ce1bf...` or `ff_3a7c9e...` |
 | `X-FairFetch-Payment-Method` | How the agent paid: `wallet` (pre-funded account) or `x402` (one-time payment). | `wallet` |
 | `X-FairFetch-Wallet-Balance` | Remaining wallet balance after this charge (only present for wallet payments). | `99000` |
-| `X-Fairfetch-Version` | Protocol version, so clients know which Fairfetch spec they're talking to. | `0.2` |
+| `X-FairFetch-Version` | Protocol version, so clients know which Fairfetch spec they're talking to. | `0.2` |
 
 > [!TIP]
 > For a plain-language explanation of all Fairfetch concepts, headers, and terminology, see the [Concepts Guide](docs/CONCEPTS.md).

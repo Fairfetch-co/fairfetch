@@ -40,7 +40,7 @@ class TestComplianceHeaders:
 
         assert d["X-Data-Origin-Verified"] == "true"
         assert d["X-AI-License-Type"] == "publisher-terms"
-        assert d["X-Fairfetch-Version"] == "0.2"
+        assert d["X-FairFetch-Version"] == "0.2"
 
     def test_headers_with_signature(self, signer: Ed25519Signer):
         sig = signer.sign(b"test content")

@@ -198,7 +198,7 @@ suggestion and get clean, legal content through the API instead.
 | `X-AI-License-Type` | "These are the publisher's terms for AI usage." | `publisher-terms` |
 | `X-FairFetch-Origin-Signature` | "The publisher digitally signed this content. You can verify it hasn't been tampered with." | `GllQLb/V4Vd+Su...` |
 | `X-Content-Hash` | "Here's a fingerprint of the content. Use it to verify integrity." | `sha256:2c449548...` |
-| `X-Fairfetch-Version` | "This server speaks Fairfetch protocol version 0.2." | `0.2` |
+| `X-FairFetch-Version` | "This server speaks Fairfetch protocol version 0.2." | `0.2` |
 
 ### When Payment Is Involved
 
