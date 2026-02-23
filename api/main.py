@@ -19,6 +19,7 @@ from api.dependencies import (
     get_config,
 )
 from api.routes import router
+from payments.wallet_ledger import WalletLedger
 from payments.x402 import X402Middleware
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
@@ -41,14 +42,17 @@ def create_app() -> FastAPI:
         redoc_url="/redoc",
     )
 
+    cors_origins = ["*"] if config.test_mode else [f"https://{config.publisher_domain}"]
+
     application.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
+        allow_origins=cors_origins,
         allow_methods=["*"],
         allow_headers=[
             "*",
             "X-PAYMENT",
             "X-PAYMENT-RECEIPT",
+            "X-WALLET-TOKEN",
             "X-USAGE-CATEGORY",
             "X-FairFetch-License-ID",
             "X-FairFetch-Origin-Signature",
@@ -61,6 +65,8 @@ def create_app() -> FastAPI:
             "X-FairFetch-Compliance-Level",
             "X-FairFetch-License-ID",
             "X-FairFetch-Origin-Signature",
+            "X-FairFetch-Payment-Method",
+            "X-FairFetch-Wallet-Balance",
             "X-FairFetch-Preferred-Access",
             "X-FairFetch-LLMS-Txt",
             "X-FairFetch-MCP-Endpoint",
@@ -73,14 +79,23 @@ def create_app() -> FastAPI:
     license_provider = (
         build_license_provider(config, signer) if config.enable_usage_grants else None
     )
+    wallet_ledger = WalletLedger(test_mode=config.test_mode)
 
     application.add_middleware(
         X402Middleware,
         facilitator=facilitator,
         requirement=requirement,
         license_provider=license_provider,
+        wallet_ledger=wallet_ledger,
         paid_path_prefixes=["/content/"],
-        exempt_paths=["/health", "/openapi.json", "/docs", "/redoc", "/compliance/"],
+        exempt_paths=[
+            "/health",
+            "/openapi.json",
+            "/docs",
+            "/redoc",
+            "/compliance/",
+            "/wallet/",
+        ],
     )
 
     application.state.config = config
@@ -89,6 +104,7 @@ def create_app() -> FastAPI:
     application.state.summarizer = build_summarizer(config)
     application.state.packet_builder = build_packet_builder(signer)
     application.state.license_provider = license_provider
+    application.state.wallet_ledger = wallet_ledger
     application.state.scraper_intercept_count = 0
 
     application.include_router(router)

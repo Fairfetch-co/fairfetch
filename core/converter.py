@@ -11,6 +11,8 @@ import trafilatura
 import truststore
 from markdownify import markdownify
 
+from core.url_validation import validate_url
+
 truststore.inject_into_ssl()
 
 
@@ -34,8 +36,10 @@ class ContentConverter:
         self._timeout = timeout
 
     async def from_url(self, url: str) -> ConversionResult:
+        validate_url(url)
         async with httpx.AsyncClient(
-            timeout=self._timeout, follow_redirects=True,
+            timeout=self._timeout,
+            follow_redirects=True,
         ) as client:
             resp = await client.get(
                 url, headers={"User-Agent": "Fairfetch/0.1 (+https://fairfetch.dev)"}

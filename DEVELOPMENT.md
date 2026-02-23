@@ -166,6 +166,31 @@ make lint       # ruff check + format
 make typecheck  # mypy strict mode
 ```
 
+## Security
+
+### URL validation (SSRF protection)
+
+The `url` query parameter is validated before any outbound fetch. Blocked targets include:
+
+- Non-HTTP(S) schemes (`file://`, `ftp://`, etc.)
+- Loopback and private IPs (`127.x`, `10.x`, `172.16–31.x`, `192.168.x`)
+- Link-local and cloud metadata (e.g. `169.254.169.254`, `metadata.google.internal`)
+
+Requests with a disallowed URL receive `400` with `{"error": "url_blocked", "detail": "The requested URL is not allowed."}`.
+
+To test:
+
+```bash
+curl -s "http://localhost:8402/content/fetch?url=http://127.0.0.1/admin" \
+  -H "X-PAYMENT: test_paid_fairfetch"
+# → 400, url_blocked
+```
+
+### Test mode vs production
+
+- **`FAIRFETCH_TEST_MODE=true`** (default): CORS allows all origins (`*`); wallet ledger pre-seeds `wallet_test_agent_alpha` and `wallet_test_agent_beta`; mock payment tokens accepted.
+- **`FAIRFETCH_TEST_MODE=false`**: CORS is restricted to `https://{FAIRFETCH_PUBLISHER_DOMAIN}`; no pre-seeded wallets; use real payment integration.
+
 ## Architecture Decisions
 
 ### Open Core: interfaces/ vs implementations

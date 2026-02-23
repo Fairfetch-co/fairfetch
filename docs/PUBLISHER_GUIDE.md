@@ -60,6 +60,8 @@ FAIRFETCH_SIGNING_KEY=                # leave empty to auto-generate, or set a p
 LITELLM_MODEL=gpt-4o-mini             # for summarization (requires OPENAI_API_KEY)
 ```
 
+With `FAIRFETCH_TEST_MODE=false`, CORS is restricted to `https://yoursite.com` (no wildcard), and the wallet ledger does not pre-seed any test wallets — AI agents must register and fund wallets via your API or the Fairfetch marketplace.
+
 Generate a persistent signing key (recommended for production):
 
 ```python

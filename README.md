@@ -289,6 +289,65 @@ X-Content-Hash: sha256:2c449548...        # Fingerprint of the content
 
 <br />
 
+## 👛 Wallet-Based Payment (Fast Path)
+
+The 402 round-trip makes sense for discovery, but once an AI company is onboarded it's inefficient to negotiate payment on every request. Fairfetch supports **pre-funded wallets** that skip the 402 entirely:
+
+```bash
+# Register a wallet (in production, this happens through the Fairfetch marketplace)
+curl -X POST "http://localhost:8402/wallet/register?owner=AcmeAI&initial_balance=100000"
+# → {"wallet_token": "wallet_a1b2c3d4...", "balance": 100000, ...}
+
+# Now fetch content instantly — no 402, no X-PAYMENT negotiation
+curl -H "X-WALLET-TOKEN: wallet_test_agent_alpha" \
+     -H "Accept: text/markdown" \
+     "http://localhost:8402/content/fetch?url=https://example.com"
+```
+
+The response includes your remaining balance and a transaction receipt:
+
+```http
+X-FairFetch-Payment-Method: wallet        # Paid via wallet (not x402)
+X-FairFetch-Wallet-Balance: 99000         # Remaining balance after this charge
+X-PAYMENT-RECEIPT: ff_3a7c9e2b...         # Transaction ID in the ledger
+X-FairFetch-License-ID: 47db4290...:k2+w  # Usage Grant (same as x402 flow)
+```
+
+**How it works in practice:**
+
+| | x402 (One-Time Payment) | Wallet (Pre-Funded) |
+|---|---|---|
+| **First request** | 402 → pay → retry → content | Content immediately |
+| **Round-trips** | 2 | 1 |
+| **Best for** | Occasional access, discovery | High-volume production use |
+| **Billing** | Per-request settlement | Balance deducted, settled monthly (Premium) |
+
+<details>
+<summary><strong>Wallet management endpoints</strong></summary>
+
+```bash
+# Check balance
+curl "http://localhost:8402/wallet/balance?token=wallet_test_agent_alpha"
+# → {"owner": "TestAgentAlpha", "balance": 99000, ...}
+
+# Add funds
+curl -X POST "http://localhost:8402/wallet/topup?token=wallet_test_agent_alpha&amount=50000"
+# → {"amount_added": 50000, "new_balance": 149000}
+
+# Transaction history
+curl "http://localhost:8402/wallet/transactions?token=wallet_test_agent_alpha"
+# → {"transactions": [{"tx_id": "ff_...", "amount": 1000, ...}, ...]}
+```
+
+</details>
+
+> [!TIP]
+> Two test wallets are pre-loaded for local development:
+> - `wallet_test_agent_alpha` — balance 100,000 ($0.10)
+> - `wallet_test_agent_beta` — balance 500,000 ($0.50)
+
+<br />
+
 ## 📊 Usage Categories & Tiered Pricing
 
 Not all content usage is equal. Fairfetch defines **usage categories** that control what an AI agent is permitted to do with the content, with escalating compliance requirements and pricing:
@@ -480,7 +539,9 @@ Every successful response includes these headers. Think of them as a receipt and
 | `X-FairFetch-Origin-Signature` | A digital fingerprint proving the publisher's server produced this exact content. Like a notary stamp — tamper-proof. | `GllQLb/V4Vd+Su...` (base64) |
 | `X-FairFetch-License-ID` | Your Usage Grant reference. Store this — it's your proof of legal access if questions arise later. Format: `grant_id:signature_prefix`. | `47db4290...:k2+wXE3x...` |
 | `X-Content-Hash` | A fingerprint of the content body itself, so you can verify nothing was altered in transit. | `sha256:2c449548...` |
-| `X-PAYMENT-RECEIPT` | Proof that payment was settled. In test mode this is a simulated transaction hash. In production, a real on-chain transaction ID. | `0x6d8ce1bf...` |
+| `X-PAYMENT-RECEIPT` | Proof that payment was settled. For x402: a transaction hash. For wallets: a ledger transaction ID (`ff_...`). | `0x6d8ce1bf...` or `ff_3a7c9e...` |
+| `X-FairFetch-Payment-Method` | How the agent paid: `wallet` (pre-funded account) or `x402` (one-time payment). | `wallet` |
+| `X-FairFetch-Wallet-Balance` | Remaining wallet balance after this charge (only present for wallet payments). | `99000` |
 | `X-Fairfetch-Version` | Protocol version, so clients know which Fairfetch spec they're talking to. | `0.2` |
 
 > [!TIP]
@@ -510,6 +571,7 @@ Every successful response includes these headers. Think of them as a receipt and
 ```
 fairfetch/
 ├── docs/                    # Guides for publishers & AI agents
+│   ├── CONCEPTS.md          # Plain-language concepts & headers
 │   ├── PUBLISHER_GUIDE.md   # CDN deployment & onboarding
 │   └── AI_AGENT_GUIDE.md    # MCP/REST integration for agents
 ├── interfaces/              # Open Standard (abstract bases)
@@ -520,7 +582,8 @@ fairfetch/
 │   ├── converter.py         # HTML → Markdown (trafilatura)
 │   ├── summarizer.py        # LiteLLM implementation
 │   ├── knowledge_packet.py  # JSON-LD builder
-│   └── signatures.py        # Ed25519 signing
+│   ├── signatures.py        # Ed25519 signing
+│   └── url_validation.py    # SSRF protection (block private/metadata URLs)
 ├── mcp_server/              # Direct Pipeline (MCP)
 │   └── server.py            # FastMCP tools + resources
 ├── api/                     # Direct Pipeline (REST)
@@ -529,7 +592,8 @@ fairfetch/
 │   ├── negotiation.py       # Content negotiation + bot steering
 │   └── dependencies.py      # FairFetchConfig + DI
 ├── payments/                # x402 micro-payments
-│   ├── x402.py              # Middleware with grant issuance
+│   ├── x402.py              # Middleware (wallet + x402)
+│   ├── wallet_ledger.py     # In-memory wallet ledger (test_mode seeds)
 │   ├── mock_facilitator.py  # Local test facilitator
 │   └── mock_license_facilitator.py
 ├── compliance/              # EU AI Act 2026
@@ -545,7 +609,7 @@ fairfetch/
 │   └── akamai/              # EdgeWorkers (JS)
 ├── scripts/                 # Dev scripts
 │   └── dev_server.py        # Local launcher (make dev)
-├── tests/                   # 106 tests · 98% coverage
+├── tests/                   # 127 tests · 98% coverage
 ├── .github/workflows/       # CI pipeline
 ├── openapi.yaml             # REST API spec
 ├── mcp.json                 # MCP Inspector config
@@ -560,9 +624,9 @@ fairfetch/
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `FAIRFETCH_TEST_MODE` | `true` | Enable mock facilitator + grants |
+| `FAIRFETCH_TEST_MODE` | `true` | Enable mock facilitator + grants; when `false`, CORS is restricted to your domain and no test wallets are pre-seeded |
 | `FAIRFETCH_PUBLISHER_WALLET` | `0x000...` | EVM wallet for payments |
-| `FAIRFETCH_PUBLISHER_DOMAIN` | `localhost` | Publisher domain |
+| `FAIRFETCH_PUBLISHER_DOMAIN` | `localhost` | Publisher domain (also used as CORS origin when test mode is off) |
 | `FAIRFETCH_CONTENT_PRICE` | `1000` | Price in smallest USDC unit |
 | `FAIRFETCH_SIGNING_KEY` | *(generated)* | Ed25519 private key (b64) |
 | `FAIRFETCH_LICENSE_TYPE` | `publisher-terms` | Default license |
@@ -570,6 +634,14 @@ fairfetch/
 | `FAIRFETCH_ENABLE_GRANTS` | `true` | Issue Usage Grants |
 | `FAIRFETCH_PREFERRED_ACCESS` | `true` | Inject bot-steering headers |
 | `LITELLM_MODEL` | `gpt-4o-mini` | LLM for summarization |
+
+<br />
+
+## 🔒 Security
+
+- **URL validation:** The `url` parameter is validated before any outbound request. Private IPs (e.g. `127.0.0.1`, `10.x`, `192.168.x`), cloud metadata endpoints (e.g. `169.254.169.254`), and non-HTTP(S) schemes are rejected with `400` and `error: "url_blocked"`. This prevents SSRF (server-side request forgery).
+- **Test mode:** With `FAIRFETCH_TEST_MODE=false`, CORS allows only `https://{FAIRFETCH_PUBLISHER_DOMAIN}` and the ledger does not pre-seed test wallets. Use test mode only for local development.
+- **Error responses:** Upstream fetch and summarization errors return generic messages to clients; details are logged server-side only.
 
 <br />
 

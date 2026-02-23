@@ -77,14 +77,20 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/KnowledgePacket'
+        '400':
+          description: URL not allowed (e.g. private IP, cloud metadata, non-HTTP scheme). SSRF protection.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UrlBlocked'
         '402':
-          description: Payment required — include X-PAYMENT header
+          description: Payment required — include X-PAYMENT or X-WALLET-TOKEN header
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/PaymentRequired'
-        '422':
-          description: Invalid URL parameter
+        '502':
+          description: Upstream fetch failed (generic message; details logged server-side)
 
   /content/summary:
     get:
@@ -105,12 +111,22 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SummaryResponse'
+        '400':
+          description: URL not allowed (SSRF protection)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UrlBlocked'
         '402':
           description: Payment required
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/PaymentRequired'
+        '502':
+          description: Upstream fetch failed
+        '503':
+          description: Summarization service unavailable
 
   /content/markdown:
     get:
@@ -136,12 +152,20 @@ paths:
             text/markdown:
               schema:
                 type: string
+        '400':
+          description: URL not allowed (SSRF protection)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UrlBlocked'
         '402':
           description: Payment required
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/PaymentRequired'
+        '502':
+          description: Upstream fetch failed
 
   /health:
     get:
@@ -207,7 +231,8 @@ components:
       schema:
         type: string
       description: |
-        Payment proof obtained from the facilitator.
+        One-time payment proof from the facilitator. Alternatively, send
+        X-WALLET-TOKEN with a pre-funded wallet token for fast-path payment.
         For testing, use any string starting with `test_` (e.g. `test_paid_fairfetch`).
 
   headers:
@@ -320,6 +345,17 @@ components:
                     type: string
             record_count:
               type: integer
+
+    UrlBlocked:
+      type: object
+      description: Returned when the requested URL is disallowed (private IP, cloud metadata, non-HTTP)
+      properties:
+        error:
+          type: string
+          example: url_blocked
+        detail:
+          type: string
+          example: The requested URL is not allowed.
 
     PaymentRequired:
       type: object

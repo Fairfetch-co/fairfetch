@@ -21,21 +21,40 @@ signed record of the transaction.**
 
 ## How a Request Works (Plain English)
 
-1. **AI agent asks for an article.** It sends a normal HTTP request to the
-   publisher's Fairfetch endpoint, specifying what it wants and what it plans to
-   use it for (summarizing, search, training, etc.).
+Fairfetch supports two ways for AI agents to pay — choose whichever fits your use case:
 
-2. **Publisher says "that'll cost X."** The server responds with a 402 status
-   (the HTTP code for "Payment Required") and a price quote. This isn't an
-   error — it's like a menu showing the prices for different usage levels.
+### Path A: One-Time Payment (x402)
 
-3. **AI agent pays.** It sends the request again, this time with a payment
-   proof in the `X-PAYMENT` header. In production this is a real crypto
-   micro-payment. For local testing, a test token works.
+Best for occasional access or trying out a publisher's content.
 
-4. **Publisher delivers.** The agent gets clean Markdown content, along with
-   headers that serve as a receipt, a content fingerprint, and a signed legal
-   access grant.
+1. **AI agent asks for an article.** It sends a normal HTTP request.
+2. **Publisher says "that'll cost X."** The server responds with HTTP 402
+   (Payment Required) and a price quote showing all usage tiers.
+3. **AI agent pays.** It re-sends the request with a payment proof in the
+   `X-PAYMENT` header.
+4. **Publisher delivers.** Content + receipt + legal access grant.
+
+This takes two round-trips (ask → price quote → pay → content).
+
+### Path B: Pre-Funded Wallet (Fast Path)
+
+Best for production use where an AI company makes thousands of requests.
+
+1. **AI company registers a wallet** (through the API or, in production,
+   through the Fairfetch marketplace). They get a wallet token and load it
+   with funds.
+2. **AI agent sends a request with the wallet token.** It includes the
+   `X-WALLET-TOKEN` header.
+3. **Publisher checks the balance, deducts the fee, and delivers content** —
+   all in a single request. No 402, no negotiation.
+
+This takes one round-trip (request with token → content). The charges
+accumulate in a ledger and are settled periodically (e.g. monthly in the
+production/premium version).
+
+Think of it like the difference between paying cash at a toll booth every time
+(x402) versus having an E-ZPass transponder that charges your account
+automatically (wallet).
 
 ---
 
@@ -112,6 +131,40 @@ never widely used. The x402 protocol gives it a real purpose:
 Think of it like a paywall that machines can understand and negotiate with —
 no login forms, no CAPTCHAs, no human intervention.
 
+### Pre-Funded Wallets
+
+In production, it's impractical for an AI company to negotiate payment on every
+single request — they might make thousands per minute. Pre-funded wallets solve
+this:
+
+- The AI company creates an account with a balance (like a prepaid phone card).
+- Each request automatically deducts the fee from the balance.
+- The publisher gets paid, the agent gets content, and neither side has to wait
+  for a blockchain transaction on every call.
+- At the end of the month, the actual settlement happens on-chain.
+
+In the open-source version, wallets are stored in memory (reset on restart) for
+demonstration. The production/premium version would use a persistent
+blockchain-based ledger with monthly settlement cycles.
+
+### URL validation (what URLs are allowed)
+
+To prevent abuse (e.g. the server being tricked into fetching internal or
+cloud-metadata URLs), Fairfetch only allows outbound fetches to **public
+HTTP or HTTPS** URLs. The following are rejected with a 400 response
+(`url_blocked`):
+
+- **Non-HTTP(S) schemes** — e.g. `file://`, `ftp://`, `data:`
+- **Private/internal IPs** — loopback (127.x), private ranges (10.x,
+  172.16–31.x, 192.168.x), link-local
+- **Cloud metadata endpoints** — e.g. 169.254.169.254,
+  metadata.google.internal
+
+So you can only request content from normal, publicly reachable web URLs.
+If your use case requires fetching from an internal URL, you would need to
+run Fairfetch in a trusted environment and adjust or disable this
+validation accordingly.
+
 ### Content Hashing
 
 A content hash (like `sha256:2c449548...`) is a unique fingerprint of the
@@ -151,8 +204,11 @@ suggestion and get clean, legal content through the API instead.
 
 | Header | Plain Meaning | Example |
 |--------|---------------|---------|
-| `X-PAYMENT` | (Request) "Here's my payment proof." In test mode, use `test_paid_fairfetch`. | `test_paid_fairfetch` |
-| `X-PAYMENT-RECEIPT` | (Response) "Payment confirmed. Here's your transaction ID." | `0x6d8ce1bf2daf...` |
+| `X-PAYMENT` | (Request, x402 flow) "Here's my one-time payment proof." In test mode, use `test_paid_fairfetch`. | `test_paid_fairfetch` |
+| `X-WALLET-TOKEN` | (Request, wallet flow) "Charge my pre-funded account." Use instead of `X-PAYMENT` for instant access. | `wallet_test_agent_alpha` |
+| `X-PAYMENT-RECEIPT` | (Response) "Payment confirmed. Here's your transaction ID." For x402: blockchain tx hash (`0x...`). For wallets: ledger tx ID (`ff_...`). | `ff_3a7c9e2b...` |
+| `X-FairFetch-Payment-Method` | (Response) "This is how you paid." Either `wallet` or `x402`. | `wallet` |
+| `X-FairFetch-Wallet-Balance` | (Response, wallet only) "This is how much is left in your wallet after this charge." | `99000` |
 
 ### When a Usage Grant Is Issued
 
@@ -233,6 +289,8 @@ The `Accept` header in your request tells Fairfetch what format you want:
 | **Knowledge Packet** | A structured JSON-LD document containing the article content, metadata, summary, origin signature, and data lineage. |
 | **MCP** | Model Context Protocol — a standard for AI assistants (like Claude, Cursor) to connect to external tools and data sources. |
 | **USDC** | A stablecoin (cryptocurrency) pegged 1:1 to the US Dollar. Used for micro-payments because it has low transaction fees. |
+| **Wallet (Pre-Funded)** | An account with a prepaid balance. AI agents include a wallet token in their requests, and the fee is deducted automatically — no 402 round-trip needed. Like an E-ZPass for content. |
+| **Wallet Token** | A string (like `wallet_test_agent_alpha`) that identifies a pre-funded wallet. Include it in the `X-WALLET-TOKEN` header. |
 | **x402** | A protocol that uses HTTP status code 402 to enable machine-to-machine payments. The server tells the client the price; the client pays and retries. |
 | **Usage Grant** | A signed receipt proving an AI agent was authorized to use specific content for a specific purpose. |
 | **Bot Steering** | The practice of redirecting web crawlers from scraping HTML to using the publisher's official API instead. |

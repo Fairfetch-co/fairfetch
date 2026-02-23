@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import logging
 from typing import Annotated
 
 from fastapi import APIRouter, Header, Query, Request
@@ -19,8 +20,11 @@ from compliance.lineage import DataLineageTracker
 from core.converter import ContentConverter
 from core.knowledge_packet import KnowledgePacketBuilder
 from core.signatures import Ed25519Signer
+from core.url_validation import UnsafeURLError, validate_url
 from interfaces.license_provider import BaseLicenseProvider, UsageCategory
 from interfaces.summarizer import BaseSummarizer
+
+logger = logging.getLogger("fairfetch.routes")
 
 router = APIRouter()
 
@@ -132,13 +136,27 @@ async def fetch_content(
 
     usage_cat = _resolve_usage_category(usage, request)
 
+    try:
+        validate_url(url)
+    except UnsafeURLError:
+        return JSONResponse(
+            {"error": "url_blocked", "detail": "The requested URL is not allowed."},
+            status_code=400,
+        )
+
     tracker = DataLineageTracker(source_url=url)
 
     try:
         result = await converter.from_url(url)
-    except Exception as exc:
+    except UnsafeURLError:
         return JSONResponse(
-            {"error": "upstream_fetch_failed", "detail": str(exc)},
+            {"error": "url_blocked", "detail": "The requested URL is not allowed."},
+            status_code=400,
+        )
+    except Exception:
+        logger.exception("Upstream fetch failed for %s", url)
+        return JSONResponse(
+            {"error": "upstream_fetch_failed", "detail": "Could not fetch the requested URL."},
             status_code=502,
         )
     tracker.record(
@@ -247,17 +265,34 @@ async def get_summary(
     summarizer: BaseSummarizer = request.app.state.summarizer
 
     try:
-        result = await converter.from_url(url)
-    except Exception as exc:
+        validate_url(url)
+    except UnsafeURLError:
         return JSONResponse(
-            {"error": "upstream_fetch_failed", "detail": str(exc)},
+            {"error": "url_blocked", "detail": "The requested URL is not allowed."},
+            status_code=400,
+        )
+
+    try:
+        result = await converter.from_url(url)
+    except UnsafeURLError:
+        return JSONResponse(
+            {"error": "url_blocked", "detail": "The requested URL is not allowed."},
+            status_code=400,
+        )
+    except Exception:
+        logger.exception("Upstream fetch failed for %s", url)
+        return JSONResponse(
+            {"error": "upstream_fetch_failed", "detail": "Could not fetch the requested URL."},
             status_code=502,
         )
     try:
         summary_result = await summarizer.summarize(result.markdown)
     except Exception:
         return JSONResponse(
-            {"error": "summarization_unavailable", "detail": "No LLM API key configured"},
+            {
+                "error": "summarization_unavailable",
+                "detail": "Summarization service is unavailable.",
+            },
             status_code=503,
         )
 
@@ -288,12 +323,17 @@ async def get_markdown(
     usage_cat = _resolve_usage_category(usage, request)
 
     try:
+        validate_url(url)
+    except UnsafeURLError:
+        return PlainTextResponse("The requested URL is not allowed.", status_code=400)
+
+    try:
         result = await converter.from_url(url)
-    except Exception as exc:
-        return PlainTextResponse(
-            f"Error fetching URL: {exc}",
-            status_code=502,
-        )
+    except UnsafeURLError:
+        return PlainTextResponse("The requested URL is not allowed.", status_code=400)
+    except Exception:
+        logger.exception("Upstream fetch failed for %s", url)
+        return PlainTextResponse("Could not fetch the requested URL.", status_code=502)
     grant_header = await _issue_grant_for_response(
         request,
         result.markdown,
@@ -342,5 +382,127 @@ async def get_optout_status(
             "domain": domain,
             "opted_out": opted_out,
             "entries": [e.model_dump() for e in entries],
+        }
+    )
+
+
+# ---------------------------------------------------------------------------
+# Wallet management endpoints
+# ---------------------------------------------------------------------------
+
+
+@router.post("/wallet/register")
+async def register_wallet(
+    request: Request,
+    owner: Annotated[str, Query(description="Name or identifier for the wallet owner")],
+    initial_balance: Annotated[
+        int, Query(description="Starting balance in smallest USDC unit (1000 = $0.001)")
+    ] = 0,
+) -> JSONResponse:
+    """Register a new pre-funded wallet for fast-path payment (no 402 round-trip)."""
+    from payments.wallet_ledger import WalletLedger
+
+    ledger: WalletLedger = request.app.state.wallet_ledger
+    try:
+        account = ledger.create_wallet(owner=owner, initial_balance=initial_balance)
+    except ValueError as exc:
+        return JSONResponse(
+            status_code=400,
+            content={"error": "invalid_input", "detail": str(exc)},
+        )
+    return JSONResponse(
+        content={
+            "wallet_token": account.wallet_token,
+            "owner": account.owner,
+            "balance": account.balance,
+            "created_at": account.created_at,
+            "usage": (
+                "Include this token in the X-WALLET-TOKEN header on every request. "
+                "Content will be served immediately without a 402 payment step, "
+                "as long as your wallet has sufficient balance."
+            ),
+        }
+    )
+
+
+@router.get("/wallet/balance")
+async def wallet_balance(
+    request: Request,
+    token: Annotated[str, Query(description="Wallet token (from /wallet/register)")],
+) -> JSONResponse:
+    """Check a wallet's current balance and account info."""
+    from payments.wallet_ledger import WalletLedger
+
+    ledger: WalletLedger = request.app.state.wallet_ledger
+    account = ledger.get_account(token)
+    if account is None:
+        return JSONResponse(
+            status_code=404,
+            content={"error": "wallet_not_found", "detail": "No wallet with that token."},
+        )
+    return JSONResponse(content=account.to_dict())
+
+
+@router.post("/wallet/topup")
+async def wallet_topup(
+    request: Request,
+    token: Annotated[str, Query(description="Wallet token")],
+    amount: Annotated[int, Query(description="Amount to add (smallest USDC unit)")],
+) -> JSONResponse:
+    """Add funds to a wallet."""
+    from payments.wallet_ledger import WalletLedger
+
+    if amount <= 0:
+        return JSONResponse(
+            status_code=400,
+            content={"error": "invalid_input", "detail": "Amount must be positive."},
+        )
+
+    ledger: WalletLedger = request.app.state.wallet_ledger
+    tx = ledger.top_up(token, amount)
+    if tx is None:
+        account = ledger.get_account(token)
+        if account is None:
+            return JSONResponse(
+                status_code=404,
+                content={"error": "wallet_not_found", "detail": "No wallet with that token."},
+            )
+        return JSONResponse(
+            status_code=400,
+            content={"error": "balance_limit", "detail": "Top-up would exceed balance limit."},
+        )
+    account = ledger.get_account(token)
+    return JSONResponse(
+        content={
+            "tx_id": tx.tx_id,
+            "amount_added": tx.amount,
+            "new_balance": tx.balance_after,
+            "owner": account.owner if account else "",
+        }
+    )
+
+
+@router.get("/wallet/transactions")
+async def wallet_transactions(
+    request: Request,
+    token: Annotated[str, Query(description="Wallet token")],
+    limit: Annotated[int, Query(description="Max transactions to return", ge=1, le=100)] = 20,
+) -> JSONResponse:
+    """Get recent transactions for a wallet."""
+    from payments.wallet_ledger import WalletLedger
+
+    ledger: WalletLedger = request.app.state.wallet_ledger
+    account = ledger.get_account(token)
+    if account is None:
+        return JSONResponse(
+            status_code=404,
+            content={"error": "wallet_not_found", "detail": "No wallet with that token."},
+        )
+    txs = ledger.get_transactions(token, limit=limit)
+    return JSONResponse(
+        content={
+            "owner": account.owner,
+            "balance": account.balance,
+            "transactions": [t.to_dict() for t in txs],
         }
     )

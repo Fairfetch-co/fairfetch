@@ -124,6 +124,8 @@ cd fairfetch && make dev
 curl -s http://localhost:8402/content/fetch?url=https://example.com | python -m json.tool
 ```
 
+**Note:** Only public HTTP/HTTPS URLs are allowed. Private IPs, cloud metadata endpoints, and non-HTTP schemes are rejected with `400` and `{"error": "url_blocked", "detail": "The requested URL is not allowed."}`.
+
 Response:
 ```json
 {
@@ -148,13 +150,40 @@ Response:
 ```
 
 ```bash
-# Step 2: Pay and get content (test mode — no real wallet needed)
-# Specify usage=rag for RAG grounding (2x base price)
+# Step 2a: Pay with one-time payment (x402 flow)
 curl -s \
   -H "X-PAYMENT: test_paid_fairfetch" \
   -H "Accept: application/ai-context+json" \
   "http://localhost:8402/content/fetch?url=https://example.com&usage=rag" | python -m json.tool
+
+# Step 2b: OR use a pre-funded wallet (faster — no 402 needed)
+curl -s \
+  -H "X-WALLET-TOKEN: wallet_test_agent_alpha" \
+  -H "Accept: text/markdown" \
+  "http://localhost:8402/content/fetch?url=https://example.com"
+# → Content served immediately, balance deducted from wallet
 ```
+
+### Wallet Management (for High-Volume Use)
+
+For production pipelines, register a wallet once and use it for all requests:
+
+```bash
+# Register a wallet
+curl -X POST "http://localhost:8402/wallet/register?owner=MyAgent&initial_balance=100000"
+# → {"wallet_token": "wallet_abc123...", "balance": 100000, ...}
+
+# Check balance anytime
+curl "http://localhost:8402/wallet/balance?token=wallet_abc123..."
+
+# Add more funds
+curl -X POST "http://localhost:8402/wallet/topup?token=wallet_abc123...&amount=50000"
+```
+
+Two test wallets are pre-loaded **only when the server runs in test mode**
+(`FAIRFETCH_TEST_MODE=true`): `wallet_test_agent_alpha` (100k) and
+`wallet_test_agent_beta` (500k). In production, agents must register a
+wallet via `/wallet/register` (or the Fairfetch marketplace).
 
 ### Python Client Example
 
@@ -163,28 +192,41 @@ curl -s \
 import httpx
 
 FAIRFETCH_URL = "http://localhost:8402"
-PAYMENT_TOKEN = "test_paid_fairfetch"  # test mode token
 
-async def fetch_article(url: str, usage: str = "summary") -> dict:
-    """Fetch an article through FairFetch and get a Usage Grant.
+# Choose ONE payment method:
+WALLET_TOKEN = "wallet_test_agent_alpha"   # fast path (pre-funded)
+PAYMENT_TOKEN = "test_paid_fairfetch"      # x402 one-time payment
 
-    Args:
-        url: The article URL to fetch.
-        usage: Usage category — summary, rag, research, training, commercial.
-               Controls pricing tier and compliance level.
+async def fetch_article(
+    url: str,
+    usage: str = "summary",
+    wallet_token: str | None = None,
+) -> dict:
+    """Fetch an article through FairFetch.
+
+    Uses wallet (fast path) if wallet_token is provided,
+    otherwise falls back to x402 one-time payment.
     """
+    headers: dict[str, str] = {"Accept": "application/ai-context+json"}
+    if wallet_token:
+        headers["X-WALLET-TOKEN"] = wallet_token
+    else:
+        headers["X-PAYMENT"] = PAYMENT_TOKEN
+
     async with httpx.AsyncClient() as client:
         resp = await client.get(
             f"{FAIRFETCH_URL}/content/fetch",
             params={"url": url, "usage": usage},
-            headers={
-                "X-PAYMENT": PAYMENT_TOKEN,
-                "Accept": "application/ai-context+json",
-            },
+            headers=headers,
         )
 
         if resp.status_code == 402:
             data = resp.json()
+            if "wallet_error" in data:
+                raise Exception(
+                    f"Wallet balance too low: have {data['wallet_balance']}, "
+                    f"need {data['amount_required']}"
+                )
             pricing = data["accepts"]
             tiers = data.get("available_tiers", {})
             raise Exception(
@@ -197,6 +239,8 @@ async def fetch_article(url: str, usage: str = "summary") -> dict:
 
         return {
             "content": resp.json(),
+            "payment_method": resp.headers.get("X-FairFetch-Payment-Method"),
+            "wallet_balance": resp.headers.get("X-FairFetch-Wallet-Balance"),
             "origin_sig": resp.headers.get("X-FairFetch-Origin-Signature"),
             "license_id": resp.headers.get("X-FairFetch-License-ID"),
             "usage_category": resp.headers.get("X-FairFetch-Usage-Category"),
