@@ -36,6 +36,7 @@ dependencies = [
     "python-multipart>=0.0.18",
     "orjson>=3.10.0",
     "cachetools>=5.5.0",
+    "truststore>=0.10.0",
 ]
 
 [project.optional-dependencies]

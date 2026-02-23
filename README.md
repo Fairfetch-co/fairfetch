@@ -226,39 +226,66 @@ asyncio.run(main())
 
 ## 💳 The x402 Payment Flow
 
+The payment flow works like a toll booth: you ask for content, get told the price, pay, and then receive the content along with a receipt and a legal access grant.
+
+**Step 1 — Ask for content (no payment yet):**
+
+```bash
+curl "http://localhost:8402/content/fetch?url=https://example.com&usage=rag"
 ```
-Agent                         Fairfetch                   Facilitator
-  |                               |                            |
-  |  GET /content/fetch?url=...   |                            |
-  |  &usage=rag                   |                            |
-  |------------------------------>|                            |
-  |                               |                            |
-  |  402 Payment Required         |                            |
-  |  { accepts: { price (2x),    |                            |
-  |    usage_category: "rag" },   |                            |
-  |    available_tiers: {...} }   |                            |
-  |<------------------------------|                            |
-  |                               |                            |
-  |  GET + X-PAYMENT: <proof>     |                            |
-  |------------------------------>|                            |
-  |                               |  POST /settle              |
-  |                               |------------------------->  |
-  |                               |       { valid, tx_hash }   |
-  |                               |<-------------------------  |
-  |                               |                            |
-  |  200 OK + Content             |                            |
-  |  X-PAYMENT-RECEIPT: 0x...     |                            |
-  |  X-FairFetch-License-ID: ...  |                            |
-  |  X-FairFetch-Usage-Category:  |                            |
-  |    rag                        |                            |
-  |  X-FairFetch-Compliance-Level:|                            |
-  |    standard                   |                            |
-  |<------------------------------|                            |
+
+You get back a `402 Payment Required` response — this is not an error, it's a price quote:
+
+```json
+{
+  "accepts": {
+    "price": "2000",
+    "asset": "USDC",
+    "network": "base",
+    "payTo": "0x742d35Cc...",
+    "usage_category": "rag",
+    "compliance_level": "standard"
+  },
+  "available_tiers": {
+    "summary":    { "price": "1000",  "compliance_level": "standard" },
+    "rag":        { "price": "2000",  "compliance_level": "standard" },
+    "research":   { "price": "3000",  "compliance_level": "elevated" },
+    "training":   { "price": "5000",  "compliance_level": "strict" },
+    "commercial": { "price": "10000", "compliance_level": "strict" }
+  },
+  "error": "Payment Required",
+  "message": "This content requires micro-payment via x402..."
+}
+```
+
+- **`price`** — cost in the smallest unit of USDC (1000 = $0.001). Adjusted by usage tier.
+- **`payTo`** — the publisher's wallet address where payment goes.
+- **`available_tiers`** — all usage options with their prices, so you can pick the right one.
+
+**Step 2 — Pay and get content:**
+
+```bash
+curl -H "X-PAYMENT: test_paid_fairfetch" \
+     -H "Accept: text/markdown" \
+     "http://localhost:8402/content/fetch?url=https://example.com&usage=rag"
+```
+
+The `X-PAYMENT` header carries your payment proof. In production this is a cryptographic token from a real payment. For local testing, any value starting with `test_` works.
+
+You get back `200 OK` with the content and these headers:
+
+```http
+X-PAYMENT-RECEIPT: 0x6d8ce1bf2daf...     # Transaction proof (like a bank receipt)
+X-FairFetch-License-ID: 47db4290...:k2+w  # Your legal access grant (store this!)
+X-FairFetch-Usage-Category: rag           # Confirmed: you paid for RAG usage
+X-FairFetch-Compliance-Level: standard    # Compliance tier for this usage
+X-FairFetch-Origin-Signature: GllQLb/...  # Publisher's digital signature on the content
+X-Content-Hash: sha256:2c449548...        # Fingerprint of the content
 ```
 
 > [!NOTE]
 > For local testing, any `X-PAYMENT` value starting with `test_` is accepted.
-> The magic token `test_paid_fairfetch` always works.
+> The magic token `test_paid_fairfetch` always works. No real wallet or money needed.
 
 <br />
 
@@ -296,39 +323,65 @@ Every 402 response includes an `available_tiers` object showing the price for ea
 
 ## 🔐 Usage Grants (Legal Indemnity)
 
-A Usage Grant is an Ed25519-signed token proving legal content access under a specific usage category:
+A **Usage Grant** is your proof of legal access — think of it as a digitally signed receipt that says *"this AI agent paid for and was authorized to use this content, for this specific purpose, on this date."*
+
+Every field is included in the digital signature, so nothing can be changed after the fact:
 
 ```json
 {
   "grant_id": "a1b2c3d4...",
   "content_url": "https://publisher.com/article",
-  "content_hash": "sha256:...",
+  "content_hash": "sha256:2c449548...",
   "license_type": "publisher-terms",
   "usage_category": "rag",
   "granted_to": "0xPayerWallet...",
   "granted_at": "2026-02-22T12:00:00Z",
   "signature": {
     "algorithm": "Ed25519",
-    "signature": "...",
-    "publicKey": "..."
+    "signature": "GllQLb/V4Vd+SuTY9Gk...",
+    "publicKey": "J2nlmFsgoUtF3Avdmkt..."
   }
 }
 ```
 
-The `usage_category` field is part of the cryptographic signature, so it cannot be altered after issuance. An agent granted `summary` access cannot claim `training` rights — a new grant with appropriate pricing is required.
+| Field | What It Means |
+|-------|---------------|
+| `grant_id` | A unique ID for this specific access event — like an order number. |
+| `content_url` | The article or page that was accessed. |
+| `content_hash` | A fingerprint of the exact content delivered, proving what was received. |
+| `license_type` | The terms set by the publisher (e.g. "publisher-terms", "research-only"). |
+| `usage_category` | What the AI agent said it would use the content for (e.g. "rag", "training"). This is locked in — you can't pay for "summary" and later claim you used it for "training." |
+| `granted_to` | The wallet or identity of who paid. |
+| `granted_at` | When the access happened. |
+| `signature` | The publisher's digital signature covering all the fields above. Like a notarized stamp — unforgeable and tamper-proof. The `publicKey` lets anyone independently verify it. |
+
+> [!IMPORTANT]
+> **Store your grants.** If a publisher ever questions whether you had permission to use their content, the grant is your courtroom-ready evidence. No he-said-she-said — just math.
 
 <details>
-<summary><strong>How to verify a grant locally</strong></summary>
+<summary><strong>How to verify a grant</strong></summary>
 
-```bash
-# Get the public key via MCP resource
-# In MCP Inspector: Resources → fairfetch://public-key
+The signature covers all grant fields joined with `|`. You can verify it with any Ed25519 library:
 
-# Or extract it from any response's grant signature (the publicKey field)
+```python
+from nacl.signing import VerifyKey
+import base64
 
-# The grant's signature covers:
-#   grant_id | content_url | content_hash | license_type | usage_category | granted_to | granted_at
-# Verify using any Ed25519 library against the public key
+public_key = base64.b64decode("J2nlmFsgoUtF3Avdmkt...")
+signature  = base64.b64decode("GllQLb/V4Vd+SuTY9Gk...")
+
+payload = "a1b2c3d4...|https://publisher.com/article|sha256:2c449548...|publisher-terms|rag|0xPayerWallet...|2026-02-22T12:00:00Z"
+
+VerifyKey(public_key).verify(payload.encode(), signature)  # raises if tampered
+```
+
+Or use the built-in helper:
+
+```python
+from interfaces.license_provider import UsageGrant
+
+grant = UsageGrant.model_validate(grant_data)
+print(f"Valid: {grant.verify()}")
 ```
 
 </details>
@@ -414,18 +467,24 @@ Edge boilerplates are provided for **Cloudflare Workers**, **AWS CloudFront Lamb
 
 <br />
 
-## 📋 Compliance Headers
+## 📋 Response Headers Explained
 
-| Header | Description |
-|--------|-------------|
-| `X-Data-Origin-Verified` | EU AI Act origin attestation |
-| `X-AI-License-Type` | `publisher-terms` · `commercial` · `research-only` · `opt-out` |
-| `X-FairFetch-Usage-Category` | `summary` · `rag` · `research` · `training` · `commercial` |
-| `X-FairFetch-Compliance-Level` | `standard` · `elevated` · `strict` |
-| `X-FairFetch-Origin-Signature` | Ed25519 signature of content body |
-| `X-FairFetch-License-ID` | Usage Grant compact identifier |
-| `X-Content-Hash` | `sha256:<hex>` hash of content |
-| `X-Fairfetch-Version` | Protocol version (`0.2`) |
+Every successful response includes these headers. Think of them as a receipt and proof-of-origin attached to the content:
+
+| Header | What It Means | Example Value |
+|--------|---------------|---------------|
+| `X-Data-Origin-Verified` | "This content came directly from the publisher, not a third party." Required by the EU AI Act for provenance tracking. | `true` |
+| `X-AI-License-Type` | The terms under which the publisher is licensing this content to you. | `publisher-terms` |
+| `X-FairFetch-Usage-Category` | What you told us you're using the content for. This is locked into your Usage Grant. | `rag` |
+| `X-FairFetch-Compliance-Level` | How strict the rules are for your chosen usage. Higher-impact uses (like training) require stricter compliance. | `standard` |
+| `X-FairFetch-Origin-Signature` | A digital fingerprint proving the publisher's server produced this exact content. Like a notary stamp — tamper-proof. | `GllQLb/V4Vd+Su...` (base64) |
+| `X-FairFetch-License-ID` | Your Usage Grant reference. Store this — it's your proof of legal access if questions arise later. Format: `grant_id:signature_prefix`. | `47db4290...:k2+wXE3x...` |
+| `X-Content-Hash` | A fingerprint of the content body itself, so you can verify nothing was altered in transit. | `sha256:2c449548...` |
+| `X-PAYMENT-RECEIPT` | Proof that payment was settled. In test mode this is a simulated transaction hash. In production, a real on-chain transaction ID. | `0x6d8ce1bf...` |
+| `X-Fairfetch-Version` | Protocol version, so clients know which Fairfetch spec they're talking to. | `0.2` |
+
+> [!TIP]
+> For a plain-language explanation of all Fairfetch concepts, headers, and terminology, see the [Concepts Guide](docs/CONCEPTS.md).
 
 <br />
 
@@ -518,6 +577,7 @@ fairfetch/
 
 | Guide | What's Inside |
 |-------|---------------|
+| [**Concepts (Plain Language)**](docs/CONCEPTS.md) | What every header, value, and term means — no jargon |
 | [**Publisher Onboarding**](docs/PUBLISHER_GUIDE.md) | CDN deployment for Cloudflare, CloudFront, Fastly, Akamai, Nginx |
 | [**AI Agent Integration**](docs/AI_AGENT_GUIDE.md) | MCP for Claude/Cursor, REST clients (Python & TS), Usage Grant verification |
 | [**Development**](DEVELOPMENT.md) | Local dev setup, testing the three pillars, architecture decisions |

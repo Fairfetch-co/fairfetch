@@ -134,7 +134,13 @@ async def fetch_content(
 
     tracker = DataLineageTracker(source_url=url)
 
-    result = await converter.from_url(url)
+    try:
+        result = await converter.from_url(url)
+    except Exception as exc:
+        return JSONResponse(
+            {"error": "upstream_fetch_failed", "detail": str(exc)},
+            status_code=502,
+        )
     tracker.record(
         "extract",
         tool="trafilatura",
@@ -164,16 +170,24 @@ async def fetch_content(
         _attach_preferred_access(md_response, request)
         return md_response
 
-    summary_result = await summarizer.summarize(result.markdown)
-    tracker.record(
-        "summarize",
-        tool=f"litellm/{summary_result.model}",
-        output_hash=DataLineageTracker.hash_content(summary_result.summary),
-    )
+    try:
+        summary_result = await summarizer.summarize(result.markdown)
+    except Exception:
+        summary_result = None
+
+    if summary_result:
+        tracker.record(
+            "summarize",
+            tool=f"litellm/{summary_result.model}",
+            output_hash=DataLineageTracker.hash_content(summary_result.summary),
+        )
+        summary_text = summary_result.summary
+    else:
+        summary_text = ""
 
     packet = packet_builder.build(
         markdown=result.markdown,
-        summary=summary_result.summary,
+        summary=summary_text,
         title=result.title or "",
         author=result.author or "",
         url=url,
@@ -232,8 +246,20 @@ async def get_summary(
     converter: ContentConverter = request.app.state.converter
     summarizer: BaseSummarizer = request.app.state.summarizer
 
-    result = await converter.from_url(url)
-    summary_result = await summarizer.summarize(result.markdown)
+    try:
+        result = await converter.from_url(url)
+    except Exception as exc:
+        return JSONResponse(
+            {"error": "upstream_fetch_failed", "detail": str(exc)},
+            status_code=502,
+        )
+    try:
+        summary_result = await summarizer.summarize(result.markdown)
+    except Exception:
+        return JSONResponse(
+            {"error": "summarization_unavailable", "detail": "No LLM API key configured"},
+            status_code=503,
+        )
 
     return JSONResponse(
         content={
@@ -261,7 +287,13 @@ async def get_markdown(
     license_type: str = request.app.state.config.license_type
     usage_cat = _resolve_usage_category(usage, request)
 
-    result = await converter.from_url(url)
+    try:
+        result = await converter.from_url(url)
+    except Exception as exc:
+        return PlainTextResponse(
+            f"Error fetching URL: {exc}",
+            status_code=502,
+        )
     grant_header = await _issue_grant_for_response(
         request,
         result.markdown,

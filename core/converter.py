@@ -8,7 +8,10 @@ from functools import partial
 
 import httpx
 import trafilatura
+import truststore
 from markdownify import markdownify
+
+truststore.inject_into_ssl()
 
 
 @dataclass(frozen=True, slots=True)
@@ -31,7 +34,9 @@ class ContentConverter:
         self._timeout = timeout
 
     async def from_url(self, url: str) -> ConversionResult:
-        async with httpx.AsyncClient(timeout=self._timeout, follow_redirects=True) as client:
+        async with httpx.AsyncClient(
+            timeout=self._timeout, follow_redirects=True,
+        ) as client:
             resp = await client.get(
                 url, headers={"User-Agent": "Fairfetch/0.1 (+https://fairfetch.dev)"}
             )
