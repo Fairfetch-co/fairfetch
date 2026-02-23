@@ -19,6 +19,7 @@ from api.dependencies import (
     get_config,
 )
 from api.routes import router
+from interfaces.facilitator import PaymentRequirement
 from payments.wallet_ledger import WalletLedger
 from payments.x402 import X402Middleware
 
@@ -75,7 +76,10 @@ def create_app() -> FastAPI:
     )
 
     facilitator = build_facilitator(config)
-    requirement = build_payment_requirement(config)
+
+    def get_requirement(url: str) -> PaymentRequirement:
+        return build_payment_requirement(config, url)
+
     license_provider = (
         build_license_provider(config, signer) if config.enable_usage_grants else None
     )
@@ -84,7 +88,7 @@ def create_app() -> FastAPI:
     application.add_middleware(
         X402Middleware,
         facilitator=facilitator,
-        requirement=requirement,
+        get_requirement=get_requirement,
         license_provider=license_provider,
         wallet_ledger=wallet_ledger,
         paid_path_prefixes=["/content/"],

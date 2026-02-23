@@ -4,7 +4,7 @@
 
 **The web protocol for the agentic economy.**
 
-[![CI](https://github.com/Fairfetch-co/fairfetch/actions/workflows/ci.yml/badge.svg)](https://github.com/Fairfetch-co/fairfetch/actions/workflows/ci.yml)
+[![CI](https://github.com/Fairfetch-co/fairfetch/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Fairfetch-co/fairfetch/actions/workflows/ci.yml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-3776AB?logo=python&logoColor=white)](https://python.org)
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![Code style: Ruff](https://img.shields.io/badge/code%20style-ruff-30173d.svg)](https://docs.astral.sh/ruff/)
@@ -314,7 +314,7 @@ You get back a `402 Payment Required` response — this is not an error, it's a 
 }
 ```
 
-- **`price`** — cost in the smallest unit of USDC (1000 = $0.001). Adjusted by usage tier.
+- **`price`** — cost in the smallest unit of USDC (1000 = $0.001). The **base price** can vary by content URL path when the publisher sets [route-based pricing](docs/PUBLISHER_GUIDE.md#step-3-set-your-sites-options) (e.g. `/business` vs `/sports`); it is then multiplied by the usage tier.
 - **`payTo`** — the publisher's wallet address where payment goes.
 - **`available_tiers`** — all usage options with their prices, so you can pick the right one.
 
@@ -683,7 +683,8 @@ fairfetch/
 | `FAIRFETCH_TEST_MODE` | `true` | Enable mock facilitator + grants; when `false`, CORS is restricted to your domain and no test wallets are pre-seeded |
 | `FAIRFETCH_PUBLISHER_WALLET` | `0x000...` | EVM wallet for payments |
 | `FAIRFETCH_PUBLISHER_DOMAIN` | `localhost` | Publisher domain (also used as CORS origin when test mode is off) |
-| `FAIRFETCH_CONTENT_PRICE` | `1000` | Price in smallest USDC unit |
+| `FAIRFETCH_CONTENT_PRICE` | `1000` | Default base price in smallest USDC unit; used when no route rule matches |
+| `FAIRFETCH_PRICE_BY_ROUTE` | *(omit)* | Optional JSON map of path prefix → price for variable pricing by route (e.g. `{"": "1000", "/business": "2000", "/sports": "500"}`). See [Publisher Guide](docs/PUBLISHER_GUIDE.md). |
 | `FAIRFETCH_SIGNING_KEY` | *(generated)* | Ed25519 private key (b64) |
 | `FAIRFETCH_LICENSE_TYPE` | `publisher-terms` | Default license |
 | `FAIRFETCH_DEFAULT_USAGE_CATEGORY` | `summary` | Default usage tier for pricing |

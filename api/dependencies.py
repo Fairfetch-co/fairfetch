@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import json
 import os
 from functools import lru_cache
+from urllib.parse import urlparse
 
 from pydantic import BaseModel, Field
 
@@ -28,6 +30,9 @@ class FairFetchConfig(BaseModel):
     publisher_wallet: str = Field(default="0x0000000000000000000000000000000000000000")
     publisher_domain: str = Field(default="localhost")
     content_price: str = Field(default="1000")
+    """Default base price (smallest unit). Overridden by price_by_route when set."""
+    price_by_route: dict[str, str] = Field(default_factory=dict)
+    """Path prefix -> base price. Longest match wins. E.g. /business, /sports."""
     facilitator_url: str = Field(default="https://x402.org/facilitator")
     litellm_model: str = Field(default="gpt-4o-mini")
     signing_key: str = Field(default="")
@@ -51,6 +56,7 @@ class FairFetchConfig(BaseModel):
             ),
             publisher_domain=os.getenv("FAIRFETCH_PUBLISHER_DOMAIN", "localhost"),
             content_price=os.getenv("FAIRFETCH_CONTENT_PRICE", "1000"),
+            price_by_route=_parse_price_by_route(os.getenv("FAIRFETCH_PRICE_BY_ROUTE", "")),
             facilitator_url=os.getenv("FAIRFETCH_FACILITATOR_URL", "https://x402.org/facilitator"),
             litellm_model=os.getenv("LITELLM_MODEL", "gpt-4o-mini"),
             signing_key=os.getenv("FAIRFETCH_SIGNING_KEY", ""),
@@ -96,9 +102,63 @@ def build_license_facilitator(
     return MockLicenseFacilitator(signer)
 
 
-def build_payment_requirement(config: FairFetchConfig) -> PaymentRequirement:
+def _parse_price_by_route(raw: str) -> dict[str, str]:
+    """Parse FAIRFETCH_PRICE_BY_ROUTE JSON (path prefix -> price)."""
+    if not raw or not raw.strip():
+        return {}
+    try:
+        data = json.loads(raw)
+        if not isinstance(data, dict):
+            return {}
+        return {str(k): str(v) for k, v in data.items()}
+    except (json.JSONDecodeError, TypeError):
+        return {}
+
+
+def resolve_content_price(config: FairFetchConfig, content_url: str) -> str:
+    """Resolve base price for a content URL using path-based route rules.
+
+    The content URL path (e.g. /business, /sports) is matched against
+    config.price_by_route; longest matching prefix wins. If no rules or no
+    match, returns config.content_price.
+    """
+    if not config.price_by_route:
+        return config.content_price
+    path = _path_from_content_url(content_url)
+    # Longest matching prefix first
+    candidates = sorted(config.price_by_route.keys(), key=len, reverse=True)
+    for prefix in candidates:
+        if path == prefix or path.startswith(prefix + "/"):
+            return config.price_by_route[prefix]
+    # Explicit default key "" if present
+    if "" in config.price_by_route:
+        return config.price_by_route[""]
+    return config.content_price
+
+
+def _path_from_content_url(content_url: str) -> str:
+    """Extract path for route matching. Handles full URLs and bare paths."""
+    s = (content_url or "").strip()
+    if not s:
+        return "/"
+    if "://" in s:
+        parsed = urlparse(s)
+        path = parsed.path or "/"
+    else:
+        path = s if s.startswith("/") else "/" + s
+    return path if path else "/"
+
+
+def build_payment_requirement(
+    config: FairFetchConfig,
+    content_url: str | None = None,
+) -> PaymentRequirement:
+    """Build payment requirement; if content_url is set, use route-based price when configured."""
+    price = (
+        resolve_content_price(config, content_url or "") if content_url else config.content_price
+    )
     return PaymentRequirement(
-        price=config.content_price,
+        price=price,
         pay_to=config.publisher_wallet,
         facilitator_url=config.facilitator_url,
     )

@@ -161,12 +161,24 @@ LITELLM_MODEL=gpt-4o-mini
 | `FAIRFETCH_TEST_MODE` | `false` = real payments and production behavior; `true` = test mode (no real money) | Use `false` when you go live. |
 | `FAIRFETCH_PUBLISHER_WALLET` | Your crypto wallet address where payments go (e.g. USDC) | Get this from your wallet app or Fairfetch setup. |
 | `FAIRFETCH_PUBLISHER_DOMAIN` | Your website’s domain (no `https://`) | `newstoday.com` |
-| `FAIRFETCH_CONTENT_PRICE` | Price per request in smallest USDC unit (1000 ≈ $0.001) | `1000` |
+| `FAIRFETCH_CONTENT_PRICE` | Default price per request in smallest USDC unit (1000 ≈ $0.001). Used when no route rule matches. | `1000` |
+| `FAIRFETCH_PRICE_BY_ROUTE` | *(Optional)* JSON map of **path prefix → price** so different sections have different prices. Longest matching path wins. E.g. `{"": "1000", "/business": "2000", "/sports": "500"}` makes `/business` cost 2000, `/sports` 500, and everything else 1000. | (omit for one price site-wide) |
 | `FAIRFETCH_LICENSE_TYPE` | Legal terms you offer: `publisher-terms`, `commercial`, or `research-only` | `publisher-terms` |
 | `FAIRFETCH_SIGNING_KEY` | Leave empty at first; we’ll generate a key next. | (empty) |
 | `LITELLM_MODEL` | Model used to generate summaries (needs an API key in production) | `gpt-4o-mini` |
 
 > **Important:** With `FAIRFETCH_TEST_MODE=false`, only your domain is allowed for CORS, and no test wallets are pre-created — AI agents must register and pay through your API or the Fairfetch marketplace.
+
+**Variable pricing by route (optional)**  
+You can charge more or less for different sections of your site. Set `FAIRFETCH_PRICE_BY_ROUTE` to a JSON object mapping **path prefix** to **price** (same units as `FAIRFETCH_CONTENT_PRICE`). The path comes from the content URL agents request (e.g. `https://yoursite.com/business` → path `/business`). Longest matching prefix wins; use `""` as a key for the default when no path matches.
+
+**Example:** `abcnews.com/business` costs more than `abcnews.com/sports`:
+
+```bash
+FAIRFETCH_PRICE_BY_ROUTE='{"": "1000", "/business": "2000", "/sports": "500"}'
+```
+
+Here, `/business` (and `/business/...`) is 2000, `/sports` is 500, and all other paths use the default 1000. Omit `FAIRFETCH_PRICE_BY_ROUTE` to use a single price for the whole site.
 
 ### 3.2 Generate a signing key (recommended for production)
 
@@ -229,7 +241,7 @@ Contact: ai-licensing@newstoday.com
 | `Fairfetch-API` | Base URL of your Fairfetch API (where agents request content). |
 | `Fairfetch-MCP` | URL of your MCP endpoint (for MCP clients). |
 | `License` | Same as `FAIRFETCH_LICENSE_TYPE` (e.g. publisher-terms). |
-| `Price` | Human-readable price (e.g. 1000 USDC per request). |
+| `Price` | Human-readable price (e.g. 1000 USDC per request). May vary by route if you set `FAIRFETCH_PRICE_BY_ROUTE`. |
 | `Contact` | Email or page for AI/licensing questions. |
 
 ### 4.2 Where to put it on your site

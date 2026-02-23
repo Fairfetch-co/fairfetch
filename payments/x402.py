@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
+from collections.abc import Callable
 from typing import Any
 
 from fastapi import Request, Response
@@ -48,7 +49,7 @@ class X402Middleware(BaseHTTPMiddleware):
         app: Any,
         *,
         facilitator: BaseFacilitator,
-        requirement: PaymentRequirement,
+        get_requirement: Callable[[str], PaymentRequirement],
         license_provider: BaseLicenseProvider | None = None,
         wallet_ledger: WalletLedger | None = None,
         paid_path_prefixes: list[str] | None = None,
@@ -56,13 +57,15 @@ class X402Middleware(BaseHTTPMiddleware):
     ) -> None:
         super().__init__(app)
         self._facilitator = facilitator
-        self._requirement = requirement
+        self._get_requirement = get_requirement
         self._license_provider = license_provider
         self._wallet_ledger = wallet_ledger
         self._paid_prefixes = paid_path_prefixes or ["/content/"]
         self._exempt = set(exempt_paths or ["/health", "/openapi.json", "/docs", "/redoc"])
 
-    def _resolve_usage_category(self, request: Request) -> str:
+    def _resolve_usage_category(
+        self, request: Request, default_requirement: PaymentRequirement
+    ) -> str:
         usage = request.query_params.get("usage", "")
         if usage:
             try:
@@ -75,14 +78,17 @@ class X402Middleware(BaseHTTPMiddleware):
                 return UsageCategory(header_val.lower()).value
             except ValueError:
                 pass
-        return self._requirement.usage_category
+        return default_requirement.usage_category
 
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         if not self._is_paid_route(request.url.path):
             return await call_next(request)
 
-        usage_cat = self._resolve_usage_category(request)
-        req_for_category = self._requirement.model_copy(update={"usage_category": usage_cat})
+        content_url = request.query_params.get("url", request.url.path)
+        requirement = self._get_requirement(content_url)
+        usage_cat = self._resolve_usage_category(request, requirement)
+        req_for_category = requirement.model_copy(update={"usage_category": usage_cat})
+        request.state.payment_requirement = req_for_category
         effective_price = int(req_for_category.effective_price())
 
         wallet_token = request.headers.get(WALLET_TOKEN_HEADER)
@@ -90,7 +96,6 @@ class X402Middleware(BaseHTTPMiddleware):
 
         # --- Fast path: wallet-based payment (no 402 round-trip) ---
         if wallet_token and self._wallet_ledger:
-            content_url = request.query_params.get("url", request.url.path)
             tx = self._wallet_ledger.charge(
                 wallet_token,
                 effective_price,
@@ -202,11 +207,13 @@ class X402Middleware(BaseHTTPMiddleware):
             body_bytes = bytes(response.body)
         content_hash = hashlib.sha256(body_bytes).hexdigest() if body_bytes else ""
         url_param = request.query_params.get("url", request.url.path)
+        req = getattr(request.state, "payment_requirement", None)
+        description = req.description if req else "Content access fee"
         try:
             grant = await self._license_provider.issue_grant(
                 content_url=url_param,
                 content_hash=content_hash,
-                license_type=self._requirement.description,
+                license_type=description,
                 usage_category=usage_cat,
                 granted_to=payer,
             )

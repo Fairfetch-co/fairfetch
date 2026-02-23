@@ -7,7 +7,7 @@ info:
 
     ## Payment Flow (x402)
     1. Request content without `X-PAYMENT` header → receive `402 Payment Required`
-    2. Response body contains `accepts` object with price, asset, network, and wallet
+    2. Response body contains `accepts` object with price, asset, network, and wallet (price may vary by content URL path when publisher uses route-based pricing)
     3. Obtain payment proof via the facilitator
     4. Retry with `X-PAYMENT: <proof>` header → receive content
 
@@ -365,7 +365,7 @@ components:
           properties:
             price:
               type: string
-              description: Amount in smallest unit
+              description: Base amount in smallest unit (e.g. USDC). May vary by content URL path when publisher configures route-based pricing.
               example: '1000'
             asset:
               type: string

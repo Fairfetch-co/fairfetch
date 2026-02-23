@@ -192,6 +192,8 @@ curl -s "http://localhost:8402/content/fetch?url=https://example.com"
 
 Only **public HTTP/HTTPS** URLs are allowed. Private IPs and cloud metadata URLs return **400** with `{"error": "url_blocked", "detail": "The requested URL is not allowed."}`.
 
+**Note:** Publishers can set different prices for different URL paths (route-based pricing). The 402 `price` and `available_tiers` may therefore differ per content URL (e.g. `.../business` vs `.../sports`). Always use the quoted price from the 402 for the URL you are fetching.
+
 ### Step 2a: Pay with one-time token (x402)
 
 **Request:**

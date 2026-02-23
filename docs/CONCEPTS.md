@@ -256,13 +256,15 @@ what it costs. Here's what each field means:
 
 | Field | Plain Meaning |
 |-------|---------------|
-| `price` | How much it costs, in the smallest unit of the currency. `1000` USDC = $0.001 USD. |
+| `price` | How much it costs, in the smallest unit of the currency. `1000` USDC = $0.001 USD. Publishers can set **variable prices by route** (e.g. higher for `/business`, lower for `/sports`); the 402 quote reflects the base price for the requested content URL, then multiplied by usage tier. |
 | `asset` | What currency. Currently USDC (a stablecoin pegged to the US dollar). |
 | `network` | Which blockchain network for payment. "base" = Base (an Ethereum layer-2 network with low fees). |
 | `payTo` | The publisher's wallet address — where the money goes. |
 | `usage_category` | The usage tier you requested (or the default). |
 | `compliance_level` | How strict the rules are for that tier. "standard" for light use, "strict" for training/commercial. |
 | `available_tiers` | A menu of all options with prices, so your agent can pick the cheapest tier that fits its needs. |
+
+**Variable pricing by route:** A publisher can configure different base prices for different URL paths (e.g. `FAIRFETCH_PRICE_BY_ROUTE` in the [Publisher Guide](PUBLISHER_GUIDE.md)). The 402 response for `?url=https://site.com/business` may show a different base price than `?url=https://site.com/sports`. Longest path prefix wins; the default price applies when no path matches.
 
 ---
 
@@ -291,6 +293,7 @@ The `Accept` header in your request tells Fairfetch what format you want:
 | **USDC** | A stablecoin (cryptocurrency) pegged 1:1 to the US Dollar. Used for micro-payments because it has low transaction fees. |
 | **Wallet (Pre-Funded)** | An account with a prepaid balance. AI agents include a wallet token in their requests, and the fee is deducted automatically — no 402 round-trip needed. Like an E-ZPass for content. |
 | **Wallet Token** | A string (like `wallet_test_agent_alpha`) that identifies a pre-funded wallet. Include it in the `X-WALLET-TOKEN` header. |
+| **Route-based pricing** | Optional publisher config (`FAIRFETCH_PRICE_BY_ROUTE`) that sets different base prices for different URL path prefixes (e.g. `/business` vs `/sports`). Longest matching path wins; the 402 quote reflects the base price for the requested content URL. |
 | **x402** | A protocol that uses HTTP status code 402 to enable machine-to-machine payments. The server tells the client the price; the client pays and retries. |
 | **Usage Grant** | A signed receipt proving an AI agent was authorized to use specific content for a specific purpose. |
 | **Bot Steering** | The practice of redirecting web crawlers from scraping HTML to using the publisher's official API instead. |

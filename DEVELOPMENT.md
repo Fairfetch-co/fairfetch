@@ -191,6 +191,8 @@ curl -s "http://localhost:8402/content/fetch?url=http://127.0.0.1/admin" \
 - **`FAIRFETCH_TEST_MODE=true`** (default): CORS allows all origins (`*`); wallet ledger pre-seeds `wallet_test_agent_alpha` and `wallet_test_agent_beta`; mock payment tokens accepted.
 - **`FAIRFETCH_TEST_MODE=false`**: CORS is restricted to `https://{FAIRFETCH_PUBLISHER_DOMAIN}`; no pre-seeded wallets; use real payment integration.
 
+Optional **`FAIRFETCH_PRICE_BY_ROUTE`** (JSON map of path prefix → price) enables variable pricing by content URL path; see [Publisher Guide](docs/PUBLISHER_GUIDE.md) and [README Configuration](README.md#-configuration).
+
 ## Architecture Decisions
 
 ### Open Core: interfaces/ vs implementations
