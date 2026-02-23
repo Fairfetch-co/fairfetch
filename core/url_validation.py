@@ -58,6 +58,7 @@ def validate_url(url: str) -> str:
         if parsed.path.startswith(prefix):
             raise UnsafeURLError(f"Path '{parsed.path}' is blocked (cloud metadata)")
 
+    addr: ipaddress.IPv4Address | ipaddress.IPv6Address | None
     try:
         addr = ipaddress.ip_address(hostname)
     except ValueError:

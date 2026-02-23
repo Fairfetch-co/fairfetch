@@ -228,6 +228,62 @@ asyncio.run(main())
 
 The payment flow works like a toll booth: you ask for content, get told the price, pay, and then receive the content along with a receipt and a legal access grant.
 
+### High-level flow (technical overview)
+
+**Path A — x402 (one-time payment):** Agent → 402 → pay → retry → Fairfetch settles with Facilitator → 200 + content + grant.
+
+```
+Agent                         Fairfetch                   Facilitator
+  |                               |                            |
+  |  GET /content/fetch?url=...   |                            |
+  |  &usage=rag                   |                            |
+  |------------------------------>|                            |
+  |                               |                            |
+  |  402 Payment Required         |                            |
+  |  { accepts: { price (2x),     |                            |
+  |    usage_category: "rag" },   |                            |
+  |    available_tiers: {...} }   |                            |
+  |<------------------------------|                            |
+  |                               |                            |
+  |  GET + X-PAYMENT: <proof>     |                            |
+  |------------------------------>|                            |
+  |                               |  POST /settle              |
+  |                               |------------------------->  |
+  |                               |       { valid, tx_hash }   |
+  |                               |<-------------------------  |
+  |                               |                            |
+  |  200 OK + Content             |                            |
+  |  X-PAYMENT-RECEIPT: 0x...     |                            |
+  |  X-FairFetch-License-ID: ...  |                            |
+  |  X-FairFetch-Usage-Category:  |                            |
+  |    rag                        |                            |
+  |  X-FairFetch-Compliance-Level:|                            |
+  |    standard                   |                            |
+  |<------------------------------|                            |
+```
+
+**Path B — Wallet (pre-funded):** Agent sends `X-WALLET-TOKEN`; Fairfetch charges the ledger and returns content in one round-trip. No 402, no Facilitator call.
+
+```
+Agent                         Fairfetch                   Ledger
+  |                               |                            |
+  |  GET /content/fetch?url=...   |                            |
+  |  X-WALLET-TOKEN: <token>      |                            |
+  |------------------------------>|                            |
+  |                               |  charge(wallet, price)     |
+  |                               |------------------------->  |
+  |                               |       { tx_id, balance }   |
+  |                               |<-------------------------  |
+  |                               |                            |
+  |  200 OK + Content             |                            |
+  |  X-FairFetch-Payment-Method:  |                            |
+  |    wallet                     |                            |
+  |  X-FairFetch-Wallet-Balance:  |                            |
+  |  X-PAYMENT-RECEIPT: ff_...    |                            |
+  |  X-FairFetch-License-ID: ...  |                            |
+  |<------------------------------|                            |
+```
+
 **Step 1 — Ask for content (no payment yet):**
 
 ```bash
