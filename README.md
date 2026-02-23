@@ -11,6 +11,7 @@
 [![MCP](https://img.shields.io/badge/protocol-MCP-7c3aed.svg)](https://modelcontextprotocol.io)
 [![x402](https://img.shields.io/badge/payments-x402-22c55e.svg)](https://www.x402.org/)
 [![EU AI Act](https://img.shields.io/badge/compliance-EU%20AI%20Act%202026-0055a4.svg)](#-compliance-headers)
+[![Security Policy](https://img.shields.io/badge/Security-Policy-blue.svg)](SECURITY.md)
 
 <br />
 
