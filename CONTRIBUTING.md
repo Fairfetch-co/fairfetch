@@ -39,6 +39,27 @@ funds continued development.
 
 If you have questions about the CLA, please open an issue or email legal@fairfetch.co.
 
+## Proposing Major Changes (RFC Process)
+
+Significant architectural changes require design review before implementation. This
+protects contributor time and ensures architectural integrity and alignment with
+Fairfetch's Open Core boundaries.
+
+**When is an RFC required?** Examples include (but are not limited to):
+
+- New payment facilitators or license providers
+- Changes to `interfaces/` contracts or core protocol behavior
+- New compliance or signing semantics
+- Shifts in how the x402 middleware, wallet ledger, or content pipeline behave
+
+**Process:**
+
+1. **Open an issue** with the `[RFC]` tag and a clear title (e.g. `[RFC] Add EIP-3009 production facilitator`).
+2. **Use the RFC template** — copy the structure from [docs/RFC_TEMPLATE.md](docs/RFC_TEMPLATE.md) into the issue body.
+3. **Engage in technical debate** — maintainers and contributors will review the proposal. Ensure the design fits within the Open Core boundaries (see [Architecture Boundaries](#architecture-boundaries)) and does not blur the line between the open standard and commercial offerings.
+
+We encourage thorough discussion before coding. Merging an RFC does not obligate you to implement it; it means the design is accepted and implementation can proceed in follow-up PRs.
+
 ## Getting Started
 
 1. Fork the repository on GitHub
