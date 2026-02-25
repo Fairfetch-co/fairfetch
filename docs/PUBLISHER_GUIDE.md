@@ -288,7 +288,7 @@ Choose the option that matches how your site is hosted.
 **Best for:** Sites already on Cloudflare.
 
 1. In the Fairfetch repo, go to the folder `deploy/cloudflare`.
-2. Open `wrangler.toml` and set your API origin and paths. **Example:**
+2. Open `wrangler.toml` and set your API origin and paths. **You must set `FAIRFETCH_API_ORIGIN` to the base URL of the Fairfetch API server you have created** (the repo default may be a placeholder). **Example:**
 
 ```toml
 [vars]

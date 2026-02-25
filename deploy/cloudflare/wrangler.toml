@@ -2,6 +2,8 @@ name = "fairfetch-edge"
 main = "worker.ts"
 compatibility_date = "2025-12-01"
 
+# Set FAIRFETCH_API_ORIGIN to the base URL of the Fairfetch API server you run.
+# The worker proxies AI-agent requests to this origin. Replace with your own (e.g. https://fairfetch.co or https://api.yoursite.com).
 [vars]
 FAIRFETCH_API_ORIGIN = "https://api.fairfetch.co"
 FAIRFETCH_LLMS_TXT = "/.well-known/llms.txt"

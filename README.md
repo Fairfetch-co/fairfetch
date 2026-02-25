@@ -671,7 +671,7 @@ fairfetch/
 │   └── dev_server.py        # Local launcher (make dev)
 ├── tests/                   # 127 tests · 98% coverage
 ├── .github/workflows/       # CI pipeline
-├── openapi.yaml             # REST API spec
+├── openapi.yaml             # REST API spec (set servers[].url to your API when self-hosting)
 ├── mcp.json                 # MCP Inspector config
 ├── pyproject.toml            # Package config
 ├── Makefile                 # Dev commands
@@ -681,6 +681,8 @@ fairfetch/
 <br />
 
 ## ⚙️ Configuration
+
+**Deploying your own API?** If you use the Cloudflare Worker (`deploy/cloudflare/wrangler.toml`), set `FAIRFETCH_API_ORIGIN` to your API base URL. If you use the OpenAPI spec for clients or docs, set the production `servers[].url` in `openapi.yaml` to your deployed API.
 
 | Variable | Default | Description |
 |----------|---------|-------------|

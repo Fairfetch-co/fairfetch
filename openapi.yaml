@@ -26,11 +26,12 @@ info:
     name: Fairfetch
     url: https://github.com/Fairfetch-co/fairfetch
 
+# When hosting your own instance, change the production server URL below to your deployed API base (e.g. https://your-domain.com).
 servers:
   - url: http://localhost:8402
     description: Local development server
   - url: https://api.fairfetch.co
-    description: Production API
+    description: Production API (replace with your API server URL when self-hosting)
 
 paths:
   /content/fetch:
